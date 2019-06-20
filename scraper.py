@@ -5,24 +5,33 @@ import re                       # for regular expressions
 '''
 This method downloads a webpage and returns a BS data structure.
 '''
-def load_website(url):
-    source = requests.get(url).text
-    soup = BeautifulSoup(source)
+def website_soup(url):
+    response = requests.get(url)
+    print("Response from", url, ":", response.status_code)
+    soup = BeautifulSoup(response.text,features="html.parser")
     return soup
+
+def link_soup(soup):
+    return soup.find_all('a', {'href': re.compile(r'(http)+.*(wsj\.com\/articles\/)+(.*)')})
+
 '''
 Returns a set of links to articles given a webpage
 '''
-def article_links(soup):
-    return soup.get_all('a', {'href': re.compile(r'(http)+.*(wsj\.com\/articles\/)+(.*)')})
-'''
-textSoup = load_website("https://www.wsj.com/articles/european-stocks-slip-after-gains-in-asia-11560844990")  
-links = article_links(textSoup)
-'''
-url = "https://www.wsj.com/articles/european-stocks-slip-after-gains-in-asia-11560844990"
-response = requests.get(url)
-print("Response from", url, ":", response.status_code)
-soup = BeautifulSoup(response.text) 
-links = soup.find_all('a', {'href': re.compile(r'(http)+.*(wsj\.com\/articles\/)+(.*)')})
+def get_links(url):
+	
+    html = website_soup(url)
+    links = link_soup(html) 
+    link_set = set(links)
+    print("We begin with", len(link_set), "links")
+    for link in links:
+        regex = re.compile('(<a class="image")+')
+        if regex.search(str(link)):
+            print("found image")
+            link_set.remove(link)
+    print("After, we have", len(link_set), "links")
+    return link_set
 
 
-print(links)
+url = "https://www.wsj.com/articles/european-stocks-slip-after-gains-in-asia-11560844990"  
+links = get_links(url)
+         
