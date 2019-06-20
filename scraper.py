@@ -22,14 +22,14 @@ def get_links(url):
     html = website_soup(url)
     links = link_soup(html) 
     link_set = set(links)
-    print("We begin with", len(link_set), "links")
-    for link in links:
+    print("We begin with", len(link_list), "links")
+    for link in links_set:
         regex = re.compile('(<a class="image")+')
         if regex.search(str(link)):
             print("found image")
-            link_set.remove(link)
-    print("After, we have", len(link_set), "links")
-    return link_set
+            link_list.remove(link)
+    print("After, we have", len(link_list), "links")
+    return link_list
 
 
 url = "https://www.wsj.com/articles/european-stocks-slip-after-gains-in-asia-11560844990"  
