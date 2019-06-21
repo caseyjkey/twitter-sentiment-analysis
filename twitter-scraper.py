@@ -6,8 +6,6 @@ from twython import Twython
 with open("twitter-creds.json", "r") as f:
     creds = json.load(f)
 
-print(creds)
-
 # Instantiate a Twython object
 python_tweets = Twython(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'])
 
@@ -29,3 +27,4 @@ for status in python_tweets.search(**query)['statuses']:
 df = pd.DataFrame(t_dict)
 df.sort_values(by='favorite_count', inplace=True, ascending=False)
 df.head(5)
+print(df)
