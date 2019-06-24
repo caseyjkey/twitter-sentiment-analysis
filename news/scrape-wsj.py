@@ -34,35 +34,49 @@ def get_links(url):
     html = web_soup(url)
     links = link_soup(html) 
     link_set = set(links)
-    print("We begin with", len(link_set), "links")
     link_list = []
     for link in link_set.copy():
         regex = re.compile('(<a class="image")+')
         if regex.search(str(link)):
             print("found image")
             link_set.remove(link)
-    print("After, we have", len(link_set), "links")
     return link_set
+
+'''
+Saves Wall Street Journal articles as CSV file "news-articles.csv"
+'''
+def save_wsj(links):
+    with open("news-articles.csv", "a") as f:
+        if f.tell() == 0:
+            header = ['title', 'article']
+            writer = csv.DictWriter(f, fieldnames=header)
+            writer.writeheader()
+        
+        writer = csv.writer(f)
+        for link in tqdm(links, disable=(len(links)<10)):
+            title = link.text
+            article_soup = web_soup(link['href'])
+            article_snippet = article_soup.find_all('div', {'class': 'wsj-snippet-body'})
+            for snippet in article_snippet:
+                article = snippet.text.replace("\n", " ")    
+            writer.writerow([title, article])
+
+def save_yahoo(links):
+    with open("yahoo-news.csv", "a") as f:
+        if f.tell() == 0:
+            header = ['title', 'article']
+            writer = csv.DictWriter(f, fieldnames=header)
+            writer.writeheader()
+
+        writer = csv.writer(f)
+        for link in tqdm(links, disable=(len(links)<10)):
+            
+
 
 
 links = get_links(url)
+print("Found", len(links),"articles. Scraping now...")
 
-def links-tqdm(links):
-    
-    
+#save_wsj(links)
 
-with open("news-articles.csv", "a") as f:
-    if f.tell() == 0:
-        header = ['title', 'article']
-        writer = csv.DictWriter(f, fieldnames=header)
-        writer.writeheader()
-    
-    writer = csv.writer(f)
-    for link, num in zip(links, tqdm(range(len(links)))):
-        #writer.writerow(link.text, 
-        title = link.text
-        article_soup = web_soup(link['href'])
-        article_snippet = article_soup.find_all('div', {'class': 'wsj-snippet-body'})
-        for snippet in article_snippet:
-            article = snippet.text.replace("\n", " ")    
-        writer.writerow([title, article])
+print("...scraping complete.")
