@@ -26,5 +26,7 @@ for status in python_tweets.search(**query)['statuses']:
 
 df = pd.DataFrame(t_dict)
 df.sort_values(by='favorite_count', inplace=True, ascending=False)
-df.head(5)
+# df.head(5)
 print(df)
+# print(python_tweets.get_application_rate_limit_status())
+
