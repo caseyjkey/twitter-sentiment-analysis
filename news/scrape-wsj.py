@@ -40,17 +40,17 @@ def web_soup(url):
     return soup
 
 
-
 '''
 Extract WSJ links from the bs4 d.s.
 '''
 def link_soup(soup):
     if source == "wsj":
         return soup.find_all('a', {'href': re.compile(r'(http)+.*(wsj\.com\/articles\/)+(.*)')})
-    else if source == "yahoo":
-        return soup.find_all('a')['href']
+    elif source == "yahoo":
+        return soup.find_all('a', {'href': re.compile(r'.*(\/news\/)+(.+)')})
     
     return ()
+
     
 '''
 Returns a set of links to articles given a webpage
@@ -67,11 +67,14 @@ def get_links(url):
             link_set.remove(link)
     return link_set
 
+
 '''
-Saves Wall Street Journal articles as CSV file "news-articles.csv"
+Saves Wall Street Journal articles as CSV file "wsj-news.csv"
 '''
 def save_wsj(links):
-    with open("news-articles.csv", "a") as f:
+    print("Scraping now...")
+
+    with open("wsj-news.csv", "a") as f:
         # Write headers if this is a fresh file
         if f.tell() == 0:
             header = ['title', 'article']
@@ -92,7 +95,15 @@ def save_wsj(links):
             # Write article to CSV file
             writer.writerow([title, article])
 
+    print("...scraping complete.")
+
+
+'''
+Saves Yahoo Finance articles as CSV file "yahoo-news.csv"
+'''
 def save_yahoo(links):
+    print("Scraping now...")
+
     with open("yahoo-news.csv", "a") as f:
         # Write column titles for a fresh CSV file
         if f.tell() == 0:
@@ -105,15 +116,16 @@ def save_yahoo(links):
         for link in tqdm(links, disable=(len(links)<10)):
             break
 
+    print("...scraping complete.")
 
 
-links = get_links(url)
+if __name__ == "__main__":
+    links = get_links(url)
 
-for link in links:
-    print(link)
+    #for link in links:
+     #   print(link.prettify())
 
-print("Found", len(links),"articles. Scraping now...")
+    print("Found", len(links), "news articles.")
+    save_yahoo(links) if source == "yahoo" else save_wsj(links)
 
-#save_wsj(links)
 
-print("...scraping complete.")
