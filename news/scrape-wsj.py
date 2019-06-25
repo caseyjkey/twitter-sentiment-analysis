@@ -5,9 +5,27 @@ import csv                      # for exporting the scraped articles
 import sys                      # for command-line url argument
 from tqdm import tqdm           # for progress bar
 
+'''
+Determines the news source (WSJ, Yahoo! Finance)
+Returns:
+    "wsj"
+    "yahoo"
+    "unknown news source"
+'''
+def which_news_is(url):
+    wsj = re.compile(r'.*(wsj\.com)+(.*)')
+    yahoo = re.compile(r'.*(finance\.yahoo\.com)+(.*)')
+    if wsj.search(url):
+        return "wsj"
+    if yahoo.search(url):
+        return "yahoo"
+    return "unknown news source"
+
+
 argv = sys.argv
 url = "https://www.wsj.com/news/markets/stocks" \
        if len(argv) == 1 else argv[1]
+source = which_news_is(url)
 
 '''
 This method downloads a webpage and returns a BS data structure.
@@ -21,12 +39,19 @@ def web_soup(url):
     soup = BeautifulSoup(response.text,features="html.parser")
     return soup
 
+
+
 '''
 Extract WSJ links from the bs4 d.s.
 '''
 def link_soup(soup):
-    return soup.find_all('a', {'href': re.compile(r'(http)+.*(wsj\.com\/articles\/)+(.*)')})
-
+    if source == "wsj":
+        return soup.find_all('a', {'href': re.compile(r'(http)+.*(wsj\.com\/articles\/)+(.*)')})
+    else if source == "yahoo":
+        return soup.find_all('a')['href']
+    
+    return ()
+    
 '''
 Returns a set of links to articles given a webpage
 '''
@@ -47,34 +72,46 @@ Saves Wall Street Journal articles as CSV file "news-articles.csv"
 '''
 def save_wsj(links):
     with open("news-articles.csv", "a") as f:
+        # Write headers if this is a fresh file
         if f.tell() == 0:
             header = ['title', 'article']
             writer = csv.DictWriter(f, fieldnames=header)
             writer.writeheader()
         
+        # Write to file
         writer = csv.writer(f)
         for link in tqdm(links, disable=(len(links)<10)):
+            # Extract article title
             title = link.text
+            # Visit link to article
             article_soup = web_soup(link['href'])
+            # Extract article snippet
             article_snippet = article_soup.find_all('div', {'class': 'wsj-snippet-body'})
             for snippet in article_snippet:
                 article = snippet.text.replace("\n", " ")    
+            # Write article to CSV file
             writer.writerow([title, article])
 
 def save_yahoo(links):
     with open("yahoo-news.csv", "a") as f:
+        # Write column titles for a fresh CSV file
         if f.tell() == 0:
             header = ['title', 'article']
             writer = csv.DictWriter(f, fieldnames=header)
             writer.writeheader()
 
+        # Write to file
         writer = csv.writer(f)
         for link in tqdm(links, disable=(len(links)<10)):
-            
+            break
 
 
 
 links = get_links(url)
+
+for link in links:
+    print(link)
+
 print("Found", len(links),"articles. Scraping now...")
 
 #save_wsj(links)
