@@ -1,7 +1,11 @@
 import csv # Exporting tweets
 import datetime # Calculate rate of tweets
 import json # Loading twitter credentials
+import os # For finding console width
 import sys # For keyword 'track' arguments
+# import threading # For saving tweets by track keyword
+
+
 from twython import TwythonStreamer # Gateway to Twitter
 
 # Track filters can be passed as arguments
@@ -34,11 +38,12 @@ class MyStreamer(TwythonStreamer):
     # total_difference = None
     
 
-    def __init__(self, *creds):
+    def __init__(self, *creds, keyword):
         self.start_time = datetime.datetime.now()
         self.last_tweet_time =  self.start_time
         self.total_tweets = 0
         self.total_difference = 0
+        self.keyword = keyword
         super().__init__(*creds)  
 
     # Received data
@@ -57,10 +62,15 @@ class MyStreamer(TwythonStreamer):
             
             # Extract tweet and append to file
             tweet_data = process_tweet(data)
+            tweet_data['keyword'] = self.keyword
             self.save_to_csv(tweet_data)
             
             # Update stream status to console
-            print(avg_time_per_tweet, "t/s;", tweet_data['text'])
+            rows, columns = os.popen('stty size', 'r')
+
+            print('-' * int(columns))
+            print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
+            print("Keyword:", self.keyword, "Tweet:", tweet_data['text'])
 
     # Problem with the API
     def on_error(self, status_code, data):
@@ -79,10 +89,6 @@ class MyStreamer(TwythonStreamer):
                 writer = csv.writer(f)
                 writer.writerow(list(tweet.values()))
            
-# Instantiate a MyStreamer object
-stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
-                    creds['ACCESS_KEY'], creds['ACCESS_SECRET'])
-
 # Determine and print filters
 tracks = 'oracle' # Track filters are not case-sensitive 
 print("Streaming tweets about:", tracks)
@@ -94,8 +100,19 @@ if len(argv) != 1:
 else:
     print(">", tracks)
 
+def start_track(track):
+    # Instantiate a MyStreamer object
+    stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
+                            creds['ACCESS_KEY'], creds['ACCESS_SECRET'], keyword=track)
+    stream_track = threading.Thread(target=stream.statuses.filter, kwargs={'track': track})
+ 
+
 try:
     # Start the stream
-    stream.statuses.filter(track=tracks)
+    from concurrent.futures import ThreadPoolExecutor
+    executor = ThreadPoolExecuter(16)
+    futures = [executor.submit(start_track, track) for track in tracks]
+    
 except (KeyboardInterrupt, SystemExit):
     print("Saved", stream.total_tweets, "tweets in", stream.start_time - datetime.datetime.now())
+    stream_track.join()
