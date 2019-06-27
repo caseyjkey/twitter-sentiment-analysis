@@ -30,6 +30,27 @@ def process_tweet(tweet):
     # d['user_loc'] = tweet['user']['location']
     return d
 
+'''
+This function takes a "tweet" dictionary and a
+Streamer's track "keywords" as a list.
+Returns the keyword
+'''
+def find_keyword(tweet, keywords):
+    kw = ""
+    for keyword in keywords:
+        print("keyword",keyword)
+        for word in keyword.split():
+            print("word",word)
+            if word in tweet['text']:
+                kw += " " + word if kw else word
+            elif word in tweet['user']:
+                kw += " " + word if kw else word
+            elif word in tweet['hashtags']:
+                kw += " " + word if kw else word
+    tweet['keyword'] = kw 
+    return kw    
+
+
 # Create a class that inherits TwythonStreamer
 class MyStreamer(TwythonStreamer):
     # start_time = None
@@ -38,12 +59,12 @@ class MyStreamer(TwythonStreamer):
     # total_difference = None
     
 
-    def __init__(self, *creds, keyword):
+    def __init__(self, *creds, keywords):
         self.start_time = datetime.datetime.now()
         self.last_tweet_time =  self.start_time
         self.total_tweets = 0
         self.total_difference = 0
-        self.keyword = keyword
+        self.keywords = keywords
         super().__init__(*creds)  
 
     # Received data
@@ -62,15 +83,15 @@ class MyStreamer(TwythonStreamer):
             
             # Extract tweet and append to file
             tweet_data = process_tweet(data)
-            tweet_data['keyword'] = self.keyword
+            find_keyword(tweet_data, self.keywords)
             self.save_to_csv(tweet_data)
             
             # Update stream status to console
-            rows, columns = os.popen('stty size', 'r')
+            rows, columns = os.popen('stty size', 'r').read().split()
 
             print('-' * int(columns))
             print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
-            print("Keyword:", self.keyword, "Tweet:", tweet_data['text'])
+            print("Keyword:", tweet_data['keyword'], "Tweet:", tweet_data['text'])
 
     # Problem with the API
     def on_error(self, status_code, data):
@@ -95,23 +116,17 @@ print("Streaming tweets about:", tracks)
 if len(argv) != 1:
     seperator = ', '
     tracks = seperator.join(argv[1:])
-    for track in argv[1:]:
+    for track in tracks:
         print(">", track)
 else:
     print(">", tracks)
 
-def start_track(track):
-    # Instantiate a MyStreamer object
-    stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
-                            creds['ACCESS_KEY'], creds['ACCESS_SECRET'], keyword=track)
-    stream_track = threading.Thread(target=stream.statuses.filter, kwargs={'track': track})
- 
 
 try:
     # Start the stream
-    from concurrent.futures import ThreadPoolExecutor
-    executor = ThreadPoolExecuter(16)
-    futures = [executor.submit(start_track, track) for track in tracks]
+    stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
+                        creds['ACCESS_KEY'], creds['ACCESS_SECRET'], keywords=tracks)
+    stream.statuses.filter(track=tracks)
     
 except (KeyboardInterrupt, SystemExit):
     print("Saved", stream.total_tweets, "tweets in", stream.start_time - datetime.datetime.now())
