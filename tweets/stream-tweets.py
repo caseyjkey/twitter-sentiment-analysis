@@ -20,14 +20,70 @@ with open("twitter-creds.json", "r") as f:
 def deEmojify(inputString):
     return inputString.encode('ascii', 'ignore').decode('ascii')
 
+# This loads the most comprehensive text portion of the tweet  
+# Where "data" is an individual tweet, treated as JSON / dict
+def getText(data):       
+    # Try for extended text of original tweet, if RT'd (streamer)
+    try: text = data['retweeted_status']['extended_tweet']['full_text']
+    except: 
+        # Try for extended text of an original tweet, if RT'd (REST API)
+        try: text = data['retweeted_status']['full_text']
+        except:
+            # Try for extended text of an original tweet (streamer)
+            try: text = data['extended_tweet']['full_text']
+            except:
+                # Try for extended text of an original tweet (REST API)
+                try: text = data['full_text']
+                except:
+                    # Try for basic text of original tweet if RT'd 
+                    try: text = data['retweeted_status']['text']
+                    except:
+                        # Try for basic text of an original tweet
+                        try: text = data['text']
+                        except: 
+                            # Nothing left to check for
+                            text = ''
+    return text
+
+# This loads the most comprehensive text portion of the tweet  
+# Where "data" is an individual tweet, treated as JSON / dict
+def getHashtags(data):       
+    # Try for extended text of original tweet, if RT'd (streamer)
+    try: text = data['retweeted_status']['extended_tweet']['entities']['hashtags']
+    except: 
+        # Try for extended text of an original tweet, if RT'd (REST API)
+        try: text = data['retweeted_status']['entities']['hashtags']
+        except:
+            # Try for extended text of an original tweet (streamer)
+            try: text = data['extended_tweet']['entities']['hashtags']
+            except:
+                # Try for basic text of original tweet if RT'd 
+                try: text = data['retweeted_status']['entities']['hashtags']
+                except:
+                    # Try for basic text of an original tweet
+                    try: text = data['entities']['hashtags']
+                    except:
+                        # Nothing left to check for
+                        text = ''
+    for hashtag in text:
+        hashtag['text'] = hashtag['text'].lower()
+    return text
+
 # Filter out unwanted data
 def process_tweet(tweet):
+    # print(json.dumps(tweet, indent=2))
+    print("extended tweet------------------------------------------")
+    print("Get text:", getText(tweet))
+    print("Get hashtags:", getHashtags(tweet))
     d = {}
     d['date'] = tweet['created_at']
-    d['hashtags'] = [hashtag['text'] for hashtag in tweet['entities']['hashtags']]
-    d['text'] = deEmojify(tweet['text']).replace("\n", " ")
+    d['hashtags'] = [hashtag['text'] for hashtag in getHashtags(tweet)]
+    text = getText(tweet)
+    text = deEmojify(text)
+    text = text.lower().replace("\n", " ")
+    d['text'] = text
     d['user'] = tweet['user']['screen_name']
-    # d['user_loc'] = tweet['user']['location']
+    d['user_loc'] = tweet['user']['location']
     return d
 
 '''
@@ -36,19 +92,21 @@ Streamer's track "keywords" as a list.
 Returns the keyword
 '''
 def find_keyword(tweet, keywords):
-    kw = ""
+    kw = set()
     for keyword in keywords:
-        print("keyword:",keyword)
         for word in keyword.split():
-            print("word",word)
-            if word in tweet['text']:
-                kw += " " + word if kw else word
-            elif word in tweet['user']:
-                kw += " " + word if kw else word
+            if tweet['text'].find(word) != -1:
+                kw.add(word)
+            elif tweet['user'].find(word) != -1:
+                kw.add(word)
             elif word in tweet['hashtags']:
-                kw += " " + word if kw else word
-    tweet['keyword'] = kw 
-    return kw    
+                kw.add(word)
+        try:
+            find_keyword(process_tweet(tweet['quoted_status']), keywords)
+        except:
+            continue
+    tweet['keyword'] = " ".join(kw) if len(kw) > 1 else str(kw) 
+    return tweet['keyword']    
 
 
 # Create a class that inherits TwythonStreamer
