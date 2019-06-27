@@ -8,9 +8,9 @@ import sys # For keyword 'track' arguments
 
 from twython import TwythonStreamer # Gateway to Twitter
 
-# Track filters can be passed as arguments
+# Track filters and output file  can be passed as arguments
 argv = sys.argv
-
+outfile = "saved-tweets.csv" if len(argv) == 1 else sys.argv[1]
 
 # Load Twitter API credentials
 with open("twitter-creds.json", "r") as f:
@@ -38,7 +38,7 @@ Returns the keyword
 def find_keyword(tweet, keywords):
     kw = ""
     for keyword in keywords:
-        print("keyword",keyword)
+        print("keyword:",keyword)
         for word in keyword.split():
             print("word",word)
             if word in tweet['text']:
@@ -59,12 +59,13 @@ class MyStreamer(TwythonStreamer):
     # total_difference = None
     
 
-    def __init__(self, *creds, keywords):
+    def __init__(self, *creds, keywords, outfile):
         self.start_time = datetime.datetime.now()
         self.last_tweet_time =  self.start_time
         self.total_tweets = 0
         self.total_difference = 0
         self.keywords = keywords
+        self.outfile = outfile
         super().__init__(*creds)  
 
     # Received data
@@ -84,6 +85,7 @@ class MyStreamer(TwythonStreamer):
             # Extract tweet and append to file
             tweet_data = process_tweet(data)
             find_keyword(tweet_data, self.keywords)
+            print(tweet_data)
             self.save_to_csv(tweet_data)
             
             # Update stream status to console
@@ -100,7 +102,7 @@ class MyStreamer(TwythonStreamer):
 
     # Save each tweet to csv file
     def save_to_csv(self, tweet):
-        with open(r'saved_tweets.csv', 'a') as f:
+        with open(outfile, 'a') as f:
             if f.tell() == 0:
                 header = list(tweet.keys())
                 writer = csv.DictWriter(f,fieldnames=header)
@@ -111,21 +113,20 @@ class MyStreamer(TwythonStreamer):
                 writer.writerow(list(tweet.values()))
            
 # Determine and print filters
-tracks = 'oracle' # Track filters are not case-sensitive 
-print("Streaming tweets about:", tracks)
-if len(argv) != 1:
-    seperator = ', '
-    tracks = seperator.join(argv[1:])
-    for track in tracks:
-        print(">", track)
+tracks = argv[2:] # Track filters are not case-sensitive 
+print("Streaming tweets about:")
+if tracks:   
+     for track in range(len(tracks)):
+        print(">", tracks[track])
 else:
-    print(">", tracks)
+    print("Usage:", os.path.basename(__file__), "<keyword1> | '<keyword phrase>' | ... | <keyword_n>")
+    sys.exit(1)
 
 
 try:
     # Start the stream
     stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
-                        creds['ACCESS_KEY'], creds['ACCESS_SECRET'], keywords=tracks)
+                        creds['ACCESS_KEY'], creds['ACCESS_SECRET'], keywords=tracks, outfile=outfile)
     stream.statuses.filter(track=tracks)
     
 except (KeyboardInterrupt, SystemExit):
