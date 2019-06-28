@@ -65,16 +65,14 @@ def getHashtags(data):
                     except:
                         # Nothing left to check for
                         text = ''
-    for hashtag in text:
-        hashtag['text'] = hashtag['text'].lower()
+    hashtags = []
+    for entity in text:
+        hashtags.append(entity["text"].lower())
     return text
 
 # Filter out unwanted data
 def process_tweet(tweet):
     # print(json.dumps(tweet, indent=2))
-    print("extended tweet------------------------------------------")
-    print("Get text:", getText(tweet))
-    print("Get hashtags:", getHashtags(tweet))
     d = {}
     d['date'] = tweet['created_at']
     d['hashtags'] = [hashtag['text'] for hashtag in getHashtags(tweet)]
@@ -105,7 +103,7 @@ def find_keyword(tweet, keywords):
             find_keyword(process_tweet(tweet['quoted_status']), keywords)
         except:
             continue
-    tweet['keyword'] = " ".join(kw) if len(kw) > 1 else str(kw) 
+    tweet['keyword'] = " ".join(kw) if len(kw) > 1 else str(kw.pop()) 
     return tweet['keyword']    
 
 
@@ -189,4 +187,3 @@ try:
     
 except (KeyboardInterrupt, SystemExit):
     print("Saved", stream.total_tweets, "tweets in", stream.start_time - datetime.datetime.now())
-    stream_track.join()
