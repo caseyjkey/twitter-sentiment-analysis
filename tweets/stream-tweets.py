@@ -3,18 +3,19 @@ import datetime # Calculate rate of tweets
 import json # Loading twitter credentials
 import os # For finding console width
 import sys # For keyword 'track' arguments
-# import threading # For saving tweets by track keyword
-
-
 from twython import TwythonStreamer # Gateway to Twitter
 
 # Track filters and output file  can be passed as arguments
 argv = sys.argv
 outfile = "saved-tweets.csv" if len(argv) == 1 else sys.argv[1]
 
-# Load Twitter API credentials
-with open("twitter-creds.json", "r") as f:
-    creds = json.load(f)
+'''
+Get keywords and labels from the user.
+For example "bitcoin" : {"btc", "bitcoin", "satoshi nakamoto"}
+Where "bitcoin" is the associated label for these search terms.
+'''
+def get_search_terms():
+    pass
 
 # Used for sanitizing input for ADW
 def deEmojify(inputString):
@@ -74,13 +75,13 @@ def getHashtags(data):
 def process_tweet(tweet):
     # print(json.dumps(tweet, indent=2))
     d = {}
-    d['date'] = tweet['created_at']
+    d['tweet_date'] = tweet['created_at']
     d['hashtags'] = [hashtag['text'] for hashtag in getHashtags(tweet)]
     text = getText(tweet)
     text = deEmojify(text)
     text = text.lower().replace("\n", " ")
     d['text'] = text
-    d['user'] = tweet['user']['screen_name']
+    d['twitter_user'] = tweet['user']['screen_name']
     d['user_loc'] = tweet['user']['location']
     return d
 
@@ -88,6 +89,7 @@ def process_tweet(tweet):
 This function takes a "tweet" dictionary and a
 Streamer's track "keywords" as a list.
 Returns the keyword
+TODO: Figure out why some misc tweets
 '''
 def find_keyword(tweet, keywords):
     kw = set()
@@ -95,7 +97,7 @@ def find_keyword(tweet, keywords):
         for word in keyword.split():
             if tweet['text'].find(word) != -1:
                 kw.add(word)
-            elif tweet['user'].find(word) != -1:
+            elif tweet['twitter_user'].find(word) != -1:
                 kw.add(word)
             elif word in tweet['hashtags']:
                 kw.add(word)
@@ -103,7 +105,12 @@ def find_keyword(tweet, keywords):
             find_keyword(process_tweet(tweet['quoted_status']), keywords)
         except:
             continue
-    tweet['keyword'] = " ".join(kw) if len(kw) > 1 else str(kw.pop()) 
+    if len(kw) > 1:
+        tweet['keyword'] = " ".join(kw)
+    elif len(kw):
+         tweet['keyword'] = str(kw.pop()) 
+    else:
+        tweet['keyword'] = "misc"
     return tweet['keyword']    
 
 
@@ -163,11 +170,15 @@ class MyStreamer(TwythonStreamer):
                 header = list(tweet.keys())
                 writer = csv.DictWriter(f,fieldnames=header)
                 writer.writeheader()
-                writer.writerow(list(tweet.values()))
+                writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
             else:
                 writer = csv.writer(f)
-                writer.writerow(list(tweet.values()))
+                writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
            
+# Load Twitter API credentials
+with open("twitter-creds.json", "r") as f:
+    creds = json.load(f)
+
 # Determine and print filters
 tracks = argv[2:] # Track filters are not case-sensitive 
 print("Streaming tweets about:")
@@ -178,7 +189,7 @@ else:
     print("Usage:", os.path.basename(__file__), "<keyword1> | '<keyword phrase>' | ... | <keyword_n>")
     sys.exit(1)
 
-
+# try/catch for clean exit
 try:
     # Start the stream
     stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
@@ -186,4 +197,4 @@ try:
     stream.statuses.filter(track=tracks)
     
 except (KeyboardInterrupt, SystemExit):
-    print("Saved", stream.total_tweets, "tweets in", stream.start_time - datetime.datetime.now())
+    print("Saved", stream.total_tweets, "tweets in", datetime.datetime.now() - stream.start_time)
