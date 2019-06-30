@@ -15,14 +15,39 @@ For example "bitcoin" : {"btc", "bitcoin", "satoshi nakamoto"}
 Where "bitcoin" is the associated label for these search terms.
 '''
 def get_search_terms():
-    pass
+    groups = []
+    terms = {}
+    try:
+        while True:
+            label = input("Enter group label or press enter: ")
+            groups.append(label)
+    except KeyError:
+        for label in groups:
+            terms[label] = []  
+            try:
+                while True:
+                    keyword = input("Enter a keyword associated with " + label + " or press enter: ")
+                    terms[label].append(keyword)
+            except:
+                continue
+    except:
+        print("Invalid input")
+        sys.exit(1)
+    
+    return terms
 
-# Used for sanitizing input for ADW
+'''
+Used for sanitizing input for ADW
+Credit: https://bit.ly/2NhKy4f
+'''
 def deEmojify(inputString):
     return inputString.encode('ascii', 'ignore').decode('ascii')
 
-# This loads the most comprehensive text portion of the tweet  
-# Where "data" is an individual tweet, treated as JSON / dict
+'''
+This loads the most comprehensive text portion of the tweet  
+Where "data" is an individual tweet, treated as JSON / dict
+Inspired by: colditzjb @ https://github.com/tweepy/tweepy/issues/878
+'''
 def getText(data):       
     # Try for extended text of original tweet, if RT'd (streamer)
     try: text = data['retweeted_status']['extended_tweet']['full_text']
@@ -46,8 +71,11 @@ def getText(data):
                             text = ''
     return text
 
-# This loads the most comprehensive text portion of the tweet  
-# Where "data" is an individual tweet, treated as JSON / dict
+'''
+This loads the most comprehensive text portion of the tweet  
+Where "data" is an individual tweet, treated as JSON / dict
+Inspired by: colditzjk @ https://github.com/tweepy/tweepy/issues/878
+'''
 def getHashtags(data):       
     # Try for extended text of original tweet, if RT'd (streamer)
     try: text = data['retweeted_status']['extended_tweet']['entities']['hashtags']
@@ -102,7 +130,12 @@ def find_keyword(tweet, keywords):
             elif word in tweet['hashtags']:
                 kw.add(word)
         try:
+            print("!!!!!!!!!!!!!!!!!Going into quoted status")
+            print(process_tweet(tweet['quoted_status']))
             find_keyword(process_tweet(tweet['quoted_status']), keywords)
+            print("-------------------------------------------")
+            print(tweet['quoted_status'])
+
         except:
             continue
     if len(kw) > 1:
@@ -110,6 +143,8 @@ def find_keyword(tweet, keywords):
     elif len(kw):
          tweet['keyword'] = str(kw.pop()) 
     else:
+ #       print(json.dumps(tweet, indent=4, sort_keys=True))
+ #       sys.exit(1)
         tweet['keyword'] = "misc"
     return tweet['keyword']    
 
@@ -148,7 +183,9 @@ class MyStreamer(TwythonStreamer):
             # Extract tweet and append to file
             tweet_data = process_tweet(data)
             find_keyword(tweet_data, self.keywords)
-            print(tweet_data)
+            if tweet_data['keyword'] == "misc":
+                print(json.dumps(data, indent=4, sort_keys=True))
+                sys.exit(1) 
             self.save_to_csv(tweet_data)
             
             # Update stream status to console
@@ -189,7 +226,7 @@ else:
     print("Usage:", os.path.basename(__file__), "<keyword1> | '<keyword phrase>' | ... | <keyword_n>")
     sys.exit(1)
 
-# try/catch for clean exit
+# try/catch for clean exit after Ctrl-C
 try:
     # Start the stream
     stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
