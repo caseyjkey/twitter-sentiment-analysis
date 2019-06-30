@@ -211,27 +211,34 @@ class MyStreamer(TwythonStreamer):
             else:
                 writer = csv.writer(f)
                 writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
-           
-# Load Twitter API credentials
-with open("twitter-creds.json", "r") as f:
-    creds = json.load(f)
 
-# Determine and print filters
-tracks = argv[2:] # Track filters are not case-sensitive 
-print("Streaming tweets about:")
-if tracks:   
-     for track in range(len(tracks)):
-        print(">", tracks[track])
-else:
-    print("Usage:", os.path.basename(__file__), "<keyword1> | '<keyword phrase>' | ... | <keyword_n>")
-    sys.exit(1)
-
-# try/catch for clean exit after Ctrl-C
-try:
-    # Start the stream
-    stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
-                        creds['ACCESS_KEY'], creds['ACCESS_SECRET'], keywords=tracks, outfile=outfile)
-    stream.statuses.filter(track=tracks)
+if "__name__" == "__main__":           
+    # Load Twitter API credentials
+    with open("twitter-creds.json", "r") as f:
+        creds = json.load(f)
     
-except (KeyboardInterrupt, SystemExit):
-    print("Saved", stream.total_tweets, "tweets in", datetime.datetime.now() - stream.start_time)
+    get_search_terms()
+
+    if len(argv) > 2:
+        print("Usage:", os.path.basename(__file__), 
+              "[outfile]")
+        sys.exit(1)
+
+    # Determine and print filters
+
+    tracks = argv[2:] # Track filters are not case-sensitive 
+    print("Streaming tweets about:")   
+    for track in range(len(tracks)):
+        print(">", tracks[track])
+
+    # try/catch for clean exit after Ctrl-C
+    try:
+        # Start the stream
+        stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
+                            creds['ACCESS_KEY'], creds['ACCESS_SECRET'],
+                            keywords=tracks, outfile=outfile)
+
+        stream.statuses.filter(track=tracks)
+        
+    except (KeyboardInterrupt, SystemExit):
+        print("Saved", stream.total_tweets, "tweets in", datetime.datetime.now() - stream.start_time)
