@@ -18,15 +18,26 @@ def get_search_terms():
     groups = []
     terms = {}
     try:
+        print("What do you want to search for?\n")
+        print("Enter one topic per prompt.")
+        print("Press enter when complete.\n")
+
         while True:
-            label = input("Enter group label or press enter: ")
+            label = input("Search label: ")
+            if not label:
+                raise ValueError("Done with labels")
             groups.append(label)
-    except KeyError:
+    except ValueError:
+        print("\nEnter the keywords for your search.") 
+        print("Press enter to continue.\n")
         for label in groups:
             terms[label] = []  
             try:
+                
                 while True:
-                    keyword = input("Enter a keyword associated with " + label + " or press enter: ")
+                    keyword = input("Keyword for " + label + ": ")
+                    if not keyword:
+                        raise ValueError("Done with keywords")
                     terms[label].append(keyword)
             except:
                 continue
@@ -212,7 +223,7 @@ class MyStreamer(TwythonStreamer):
                 writer = csv.writer(f)
                 writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
 
-if "__name__" == "__main__":           
+if __name__ == "__main__":           
     # Load Twitter API credentials
     with open("twitter-creds.json", "r") as f:
         creds = json.load(f)
