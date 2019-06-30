@@ -28,7 +28,7 @@ def _deactivate(args):
 _deactivate(["nondestructive"])
 aliases["deactivate"] = _deactivate
 
-$VIRTUAL_ENV = r"/Users/ckey/Development/sentiment/env"
+$VIRTUAL_ENV = r"/Users/ckey/Development/twitter-multistream/env"
 
 $_OLD_VIRTUAL_PATH = $PATH
 $PATH = $PATH[:]

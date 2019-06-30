@@ -217,8 +217,8 @@ if "__name__" == "__main__":
     with open("twitter-creds.json", "r") as f:
         creds = json.load(f)
     
-    get_search_terms()
 
+    print(get_search_terms())
     if len(argv) > 2:
         print("Usage:", os.path.basename(__file__), 
               "[outfile]")
