@@ -2,6 +2,7 @@ import csv # Exporting tweets
 import datetime # Calculate rate of tweets
 import json # Loading twitter credentials
 import os # For finding console width
+import pprint
 import sys # For keyword 'track' arguments
 from twython import TwythonStreamer # Gateway to Twitter
 
@@ -135,10 +136,10 @@ Credit: https://gwu-libraries.github.io/sfm-ui/posts/2016-11-10-twitter-interact
 def summarize(tweet, extra_fields = None):
     new_tweet = {}
     for field, value in tweet.items():
-        if field in ['text', 'screen_name', 'expanded_url', 'display_url'] and value is not None:
+        if field in ['text', 'full_text', 'screen_name', 'expanded_url', 'display_url'] and value is not None:
             if field == 'created_at':
                 new_tweet['tweet_date'] = tweet[field]
-            elif field == 'text':
+            elif field == 'text' or field == 'full_text':
                 text = tweet[field]
                 text = deEmojify(text)
                 text = text.lower().replace('\n', ' ')
@@ -149,49 +150,53 @@ def summarize(tweet, extra_fields = None):
                 new_tweet[field] = value
         elif extra_fields and field in extra_fields:
             new_tweet[field] = value
-        elif field == 'hashtags':
+        elif field == 'hashtags' and len(value):
+            #new_tweet[field] = []
+            #for hashtag in value:
+            #    new_tweet[field].append(hashtag['text']) 
             for hashtag in value:
-                new_tweet[field] 
-        elif field in ['retweeted_status', 'quoted_status', 'user', 'extended_tweet', 'entities', 'hashtags']:
-            new_tweet[field] = summarize(value)
+                summarize(hashtag)
+        elif field == 'urls':
+            if type(value) == list and len(value):
+            #new_tweet[field] = []
+                for link_dict in value:
+                    new_tweet[field] = summarize(link_dict)
+            #    new_tweet[field].append(link[
+
+        elif field in ['retweeted_status', 'quoted_status', 'user', 'extended_tweet', 'entities']:
+            if field:
+                new_tweet[field] = summarize(value)
     return new_tweet
 
+
 '''
-This function takes a "tweet" dictionary and a
-Streamer's track "keywords" as a list.
-Returns the keyword
-TODO: Figure out why some misc tweets
+We can use this to instead "tally" the occurences of each group
+By changing to tweet[group] = 1
 '''
+def find_group(tweet, groups):
+    for group, keywords in groups.items():
+        if(find_keyword(tweet, keywords)):
+            return group
+    return 'misc'
+
+
 def find_keyword(tweet, keywords):
     kw = set()
-    for keyword in keywords:
-        for word in keyword.split():
-            if tweet['text'].find(word) != -1:
-                kw.add(word)
-            elif tweet['twitter_user'].find(word) != -1:
-                kw.add(word)
-            elif word in tweet['hashtags']:
-                kw.add(word)
-        try:
-            print("!!!!!!!!!!!!!!!!!Going into quoted status")
-            print(process_tweet(tweet['quoted_status']))
-            find_keyword(process_tweet(tweet['quoted_status']), keywords)
-            print("-------------------------------------------")
-            print(tweet['quoted_status'])
-
-        except:
-            continue
-    if len(kw) > 1:
-        tweet['keyword'] = " ".join(kw)
-    elif len(kw):
-         tweet['keyword'] = str(kw.pop()) 
-    else:
- #       print(json.dumps(tweet, indent=4, sort_keys=True))
- #       sys.exit(1)
-        tweet['keyword'] = "misc"
-    return tweet['keyword']    
-
-
+    if not tweet:
+        return
+    
+    if type(tweet) == str: 
+        for keyword in keywords:
+            for word in keyword.split():
+                if tweet.find(word) != -1:
+                    return True
+        return
+    
+    for key, value in tweet.items():
+        find_keyword(value, keywords)
+    
+    return False
+    
 # Create a class that inherits TwythonStreamer
 class MyStreamer(TwythonStreamer):
     # start_time = None
@@ -200,12 +205,12 @@ class MyStreamer(TwythonStreamer):
     # total_difference = None
     
 
-    def __init__(self, *creds, keywords, outfile):
+    def __init__(self, *creds, groups, outfile):
         self.start_time = datetime.datetime.now()
         self.last_tweet_time =  self.start_time
         self.total_tweets = 0
         self.total_difference = 0
-        self.keywords = keywords
+        self.groups = groups
         self.outfile = outfile
         super().__init__(*creds)  
 
@@ -224,21 +229,23 @@ class MyStreamer(TwythonStreamer):
             self.last_tweet_time = tweet_time
             
             # Extract tweet and append to file
-            tweet_data = process_tweet(data)
-            find_keyword(tweet_data, self.keywords)
-            if tweet_data['keyword'] == "misc":
+            basic = process_tweet(data)
+            summary = summarize(data)
+            basic['keyword'] = find_group(summary, self.groups)
+            if basic['keyword'] == "misc":
                 print(json.dumps(data, indent=4, sort_keys=True))
                 print("Summarized tweet --------------------------------")
-                print(summarize(data))
+                pp = pprint.PrettyPrinter(indent=4)
+                pp.pprint(summary)
                 sys.exit(1) 
-            self.save_to_csv(tweet_data)
+            self.save_to_csv(basic)
             
             # Update stream status to console
             rows, columns = os.popen('stty size', 'r').read().split()
 
             print('-' * int(columns))
             print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
-            print("Keyword:", tweet_data['keyword'], "Tweet:", tweet_data['text'])
+            print("Keyword:", basic['keyword'], "Tweet:", basic'text'])
 
     # Problem with the API
     def on_error(self, status_code, data):
@@ -272,8 +279,8 @@ if __name__ == "__main__":
 
     # Extract tracks from search_query
     tracks = []
-    search_query = get_search_terms()
-    for keywords in search_query.values():
+    groups = get_search_terms()
+    for keywords in groups.values():
         for keyword in keywords:
             tracks.append(keyword)
 
@@ -286,7 +293,7 @@ if __name__ == "__main__":
         # Start the stream
         stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
                             creds['ACCESS_KEY'], creds['ACCESS_SECRET'],
-                            keywords=tracks, outfile=outfile)
+                            keywords=groups, outfile=outfile)
 
         stream.statuses.filter(track=tracks)
         
