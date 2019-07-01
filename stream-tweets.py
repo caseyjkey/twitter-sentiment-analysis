@@ -148,20 +148,18 @@ def summarize(tweet, extra_fields = None):
                 new_tweet['twitter_user'] = tweet[field]
             else:
                 new_tweet[field] = value
+        
         elif extra_fields and field in extra_fields:
             new_tweet[field] = value
+        
         elif field == 'hashtags' and len(value):
-            #new_tweet[field] = []
-            #for hashtag in value:
-            #    new_tweet[field].append(hashtag['text']) 
             for hashtag in value:
                 summarize(hashtag)
+
         elif field == 'urls':
             if type(value) == list and len(value):
-            #new_tweet[field] = []
                 for link_dict in value:
                     new_tweet[field] = summarize(link_dict)
-            #    new_tweet[field].append(link[
 
         elif field in ['retweeted_status', 'quoted_status', 'user', 'extended_tweet', 'entities']:
             if field:
@@ -174,22 +172,31 @@ We can use this to instead "tally" the occurences of each group
 By changing to tweet[group] = 1
 '''
 def find_group(tweet, groups):
+    print("Group items:", groups.items())
     for group, keywords in groups.items():
-        if(find_keyword(tweet, keywords)):
+        print("Tweet:", tweet, keywords)
+        found = False
+        find_keyword(tweet, keywords, found)
+        if(found)):
             return group
     return 'misc'
 
 
-def find_keyword(tweet, keywords):
+def find_keyword(tweet, keywords, found):
     kw = set()
+    print("find_keyword:", tweet)
     if not tweet:
+        print("if not tweet")
         return
     
     if type(tweet) == str: 
         for keyword in keywords:
             for word in keyword.split():
+                print("looking for", word, "in", tweet)
                 if tweet.find(word) != -1:
-                    return True
+                    print("!!!!!!!!!FOUND", word, "!!!!!!")
+                    found = True
+                    return
         return
     
     for key, value in tweet.items():
@@ -233,10 +240,10 @@ class MyStreamer(TwythonStreamer):
             summary = summarize(data)
             basic['keyword'] = find_group(summary, self.groups)
             if basic['keyword'] == "misc":
-                print(json.dumps(data, indent=4, sort_keys=True))
                 print("Summarized tweet --------------------------------")
                 pp = pprint.PrettyPrinter(indent=4)
                 pp.pprint(summary)
+                print("Keyword:", basic['keyword'])
                 sys.exit(1) 
             self.save_to_csv(basic)
             
@@ -245,7 +252,7 @@ class MyStreamer(TwythonStreamer):
 
             print('-' * int(columns))
             print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
-            print("Keyword:", basic['keyword'], "Tweet:", basic'text'])
+            print("Keyword:", basic['keyword'], "Tweet:", basic['text'])
 
     # Problem with the API
     def on_error(self, status_code, data):
@@ -293,7 +300,7 @@ if __name__ == "__main__":
         # Start the stream
         stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
                             creds['ACCESS_KEY'], creds['ACCESS_SECRET'],
-                            keywords=groups, outfile=outfile)
+                            groups=groups, outfile=outfile)
 
         stream.statuses.filter(track=tracks)
         
