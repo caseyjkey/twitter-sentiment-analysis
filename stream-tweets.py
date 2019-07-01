@@ -172,37 +172,26 @@ We can use this to instead "tally" the occurences of each group
 By changing to tweet[group] = 1
 '''
 def find_group(tweet, groups):
-    print("Group items:", groups.items())
     for group, keywords in groups.items():
-        print("Tweet:", tweet, keywords)
         found = False
-        find_keyword(tweet, keywords, found)
-        if(found)):
+        found = find_keyword(tweet, keywords, found)
+        if(found):
             return group
     return 'misc'
 
 
 def find_keyword(tweet, keywords, found):
-    kw = set()
-    print("find_keyword:", tweet)
-    if not tweet:
-        print("if not tweet")
-        return
-    
     if type(tweet) == str: 
         for keyword in keywords:
             for word in keyword.split():
-                print("looking for", word, "in", tweet)
-                if tweet.find(word) != -1:
-                    print("!!!!!!!!!FOUND", word, "!!!!!!")
+                if tweet.lower().find(word) != -1:
                     found = True
-                    return
-        return
-    
-    for key, value in tweet.items():
-        find_keyword(value, keywords)
-    
-    return False
+                    return True
+    else:
+        for key, value in tweet.items():
+            found = find_keyword(value, keywords, found)
+        
+    return found
     
 # Create a class that inherits TwythonStreamer
 class MyStreamer(TwythonStreamer):
@@ -263,15 +252,20 @@ class MyStreamer(TwythonStreamer):
     def save_to_csv(self, tweet):
         with open(outfile, 'a') as f:
             if f.tell() == 0:
-                header = list(tweet.keys())
+                try: header = list(tweet.keys())
+                except Exception as e:
+                    print(tweet)
                 writer = csv.DictWriter(f,fieldnames=header)
                 writer.writeheader()
                 print(tweet)
-                writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
+                try: writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
+                except Exception as e:
+                    print(tweet)
+
             else:
                 writer = csv.writer(f)
                 writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
-
+                
 if __name__ == "__main__":           
     # Check correct arguments were given
     if len(argv) > 2:
