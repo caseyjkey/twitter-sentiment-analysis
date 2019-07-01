@@ -31,17 +31,19 @@ def get_search_terms():
         print("\nEnter the keywords for your search.") 
         print("Press enter to continue.\n")
         for label in groups:
-            terms[label] = []  
+            terms[label] = [label]  
             try:
                 
                 while True:
                     keyword = input("Keyword for " + label + ": ")
                     if not keyword:
                         raise ValueError("Done with keywords")
-                    terms[label].append(keyword)
+                    if keyword not in terms[label]:
+                        terms[label].append(keyword)
             except:
                 continue
-    except:
+    except Exception as inst:
+        print("Exception:", inst)
         print("Invalid input")
         sys.exit(1)
     
@@ -87,15 +89,14 @@ This loads the most comprehensive text portion of the tweet
 Where "data" is an individual tweet, treated as JSON / dict
 Inspired by: colditzjk @ https://github.com/tweepy/tweepy/issues/878
 '''
-def getHashtags(data):       
-    # Try for extended text of original tweet, if RT'd (streamer)
-    try: text = data['retweeted_status']['extended_tweet']['entities']['hashtags']
-    except: 
-        # Try for extended text of an original tweet, if RT'd (REST API)
-        try: text = data['retweeted_status']['entities']['hashtags']
-        except:
-            # Try for extended text of an original tweet (streamer)
-            try: text = data['extended_tweet']['entities']['hashtags']
+def getHashtags(data):            
+    try: text = data['quoted_status']['extended_tweet']['entities']['hashtags']
+    except:
+        # Try for extended text of original tweet, if RT'd (streamer)
+        try: text = data['retweeted_status']['extended_tweet']['entities']['hashtags']
+        except: 
+            # Try for extended text of an original tweet, if RT'd (REST API)
+            try: text = data['retweeted_status']['entities']['hashtags']
             except:
                 # Try for basic text of original tweet if RT'd 
                 try: text = data['retweeted_status']['entities']['hashtags']
@@ -105,6 +106,7 @@ def getHashtags(data):
                     except:
                         # Nothing left to check for
                         text = ''
+
     hashtags = []
     for entity in text:
         hashtags.append(entity["text"].lower())
@@ -123,6 +125,36 @@ def process_tweet(tweet):
     d['twitter_user'] = tweet['user']['screen_name']
     d['user_loc'] = tweet['user']['location']
     return d
+
+'''
+This extracts all aspects that are searched for in a tweet
+Suggested extra_fields: "id_str", "retweet_count", "favorite_count", "created_at"
+Returns a dictionary
+Credit: https://gwu-libraries.github.io/sfm-ui/posts/2016-11-10-twitter-interaction
+'''
+def summarize(tweet, extra_fields = None):
+    new_tweet = {}
+    for field, value in tweet.items():
+        if field in ['text', 'screen_name', 'expanded_url', 'display_url'] and value is not None:
+            if field == 'created_at':
+                new_tweet['tweet_date'] = tweet[field]
+            elif field == 'text':
+                text = tweet[field]
+                text = deEmojify(text)
+                text = text.lower().replace('\n', ' ')
+                new_tweet[field] = text
+            elif field == 'screen_name':
+                new_tweet['twitter_user'] = tweet[field]
+            else:
+                new_tweet[field] = value
+        elif extra_fields and field in extra_fields:
+            new_tweet[field] = value
+        elif field == 'hashtags':
+            for hashtag in value:
+                new_tweet[field] 
+        elif field in ['retweeted_status', 'quoted_status', 'user', 'extended_tweet', 'entities', 'hashtags']:
+            new_tweet[field] = summarize(value)
+    return new_tweet
 
 '''
 This function takes a "tweet" dictionary and a
@@ -196,6 +228,8 @@ class MyStreamer(TwythonStreamer):
             find_keyword(tweet_data, self.keywords)
             if tweet_data['keyword'] == "misc":
                 print(json.dumps(data, indent=4, sort_keys=True))
+                print("Summarized tweet --------------------------------")
+                print(summarize(data))
                 sys.exit(1) 
             self.save_to_csv(tweet_data)
             
@@ -218,26 +252,31 @@ class MyStreamer(TwythonStreamer):
                 header = list(tweet.keys())
                 writer = csv.DictWriter(f,fieldnames=header)
                 writer.writeheader()
+                print(tweet)
                 writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
             else:
                 writer = csv.writer(f)
                 writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
 
 if __name__ == "__main__":           
-    # Load Twitter API credentials
-    with open("twitter-creds.json", "r") as f:
-        creds = json.load(f)
-    
-
-    print(get_search_terms())
+    # Check correct arguments were given
     if len(argv) > 2:
         print("Usage:", os.path.basename(__file__), 
               "[outfile]")
         sys.exit(1)
 
-    # Determine and print filters
+    # Load Twitter API credentials
+    with open("twitter-creds.json", "r") as f:
+        creds = json.load(f)
 
-    tracks = argv[2:] # Track filters are not case-sensitive 
+
+    # Extract tracks from search_query
+    tracks = []
+    search_query = get_search_terms()
+    for keywords in search_query.values():
+        for keyword in keywords:
+            tracks.append(keyword)
+
     print("Streaming tweets about:")   
     for track in range(len(tracks)):
         print(">", tracks[track])
