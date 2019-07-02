@@ -1,0 +1,1 @@
+{"btc": ["btc", "bitcoin"], "ltc": ["ltc", "litecoin"]}

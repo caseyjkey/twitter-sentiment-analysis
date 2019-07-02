@@ -28,19 +28,20 @@ def get_search_terms():
 
         while True:
             label = input("Search label: ")
+            print(label, bool(label))
             # User entered empty input
             if not label:
+                print("yo")
                 if groups:
+                    print("groups")
                     raise ValueError("Done with labels")
                 else:
                     # Do we have a previous query to load?
                     try:
-                        with open('query.txt', 'r') as f:
-                            return json.loads(f)
-                    except:
-                        continue
-                            
-                    print("Must enter at least one label.")
+                        with open('./query.txt', 'r') as f:
+                            return json.load(f)
+                    except FileNotFound as e:
+                        print(e, ": must enter at least one label")
                     continue
             groups.append(label)
 
@@ -66,7 +67,7 @@ def get_search_terms():
         sys.exit(1)
     
     with open('query.txt', 'w') as f:
-        json.dumps(terms, f)
+        json.dump(terms, f)
 
     return terms
 
