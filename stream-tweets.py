@@ -18,23 +18,39 @@ Where "bitcoin" is the associated label for these search terms.
 def get_search_terms():
     groups = []
     terms = {}
+    
+    # Get the keywords for each tweet
     try:
         print("What do you want to search for?\n")
+        print("Press enter to use previous query.")
         print("Enter one topic per prompt.")
-        print("Press enter when complete.\n")
+        print("Then, press enter when complete.\n")
 
         while True:
             label = input("Search label: ")
+            # User entered empty input
             if not label:
-                raise ValueError("Done with labels")
+                if groups:
+                    raise ValueError("Done with labels")
+                else:
+                    # Do we have a previous query to load?
+                    try:
+                        with open('query.txt', 'r') as f:
+                            return json.loads(f)
+                    except:
+                        continue
+                            
+                    print("Must enter at least one label.")
+                    continue
             groups.append(label)
+
+    # What search terms are associated with each tweet?
     except ValueError:
         print("\nEnter the keywords for your search.") 
         print("Press enter to continue.\n")
         for label in groups:
             terms[label] = [label]  
             try:
-                
                 while True:
                     keyword = input("Keyword for " + label + ": ")
                     if not keyword:
@@ -43,11 +59,15 @@ def get_search_terms():
                         terms[label].append(keyword)
             except:
                 continue
+    
     except Exception as inst:
         print("Exception:", inst)
         print("Invalid input")
         sys.exit(1)
     
+    with open('query.txt', 'w') as f:
+        json.dumps(terms, f)
+
     return terms
 
 '''
@@ -229,8 +249,9 @@ class MyStreamer(TwythonStreamer):
             summary = summarize(data)
             basic['keyword'] = find_group(summary, self.groups)
             if basic['keyword'] == "misc":
+                pp = pprint.PrettyPrinter(indent=2)
+                pp.pprint(data)
                 print("Summarized tweet --------------------------------")
-                pp = pprint.PrettyPrinter(indent=4)
                 pp.pprint(summary)
                 print("Keyword:", basic['keyword'])
                 sys.exit(1) 
