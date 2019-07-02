@@ -6,12 +6,6 @@ import pprint
 import sys # For keyword 'track' arguments
 from twython import TwythonStreamer # Gateway to Twitter
 
-# Track filters and output file  
-# Cassed as arguments
-argv = sys.argv
-outfile = "saved-tweets.csv" if len(argv) == 1 else sys.argv[1]
-samesearch = True if len(argv) == 3 else False
-
 '''
 Get keywords and labels from the user.
 For example "bitcoin" : {"btc", "bitcoin", "satoshi nakamoto"}
@@ -150,8 +144,11 @@ def process_tweet(tweet):
     text = deEmojify(text)
     text = text.lower().replace("\n", " ")
     d['text'] = text
-    d['twitter_user'] = tweet['user']['screen_name']
-    d['user_loc'] = tweet['user']['location']
+    d['twitter_user'] = deEmojify(tweet['user']['screen_name'])
+    location = tweet['user']['location']
+    if location:
+        location = deEmojify(location)
+    d['user_loc'] = location 
     return d
 
 '''
@@ -221,7 +218,7 @@ def find_keyword(tweet, keywords, found):
     return found
     
 # Create a class that inherits TwythonStreamer
-class MyStreamer(TwythonStreamer):
+class Flocka(TwythonStreamer):
     # start_time = None
     # last_tweet_time = None
     # total_tweets = None
@@ -278,14 +275,13 @@ class MyStreamer(TwythonStreamer):
 
     # Save each tweet to csv file
     def save_to_csv(self, tweet):
-        with open(outfile, 'ab') as f:
+        with open(outfile, 'a', newline='\n') as f:
             if f.tell() == 0:
                 try: header = list(tweet.keys())
                 except Exception as e:
                     print(tweet)
                 writer = csv.DictWriter(f,fieldnames=header)
                 writer.writeheader()
-                print(tweet)
                 try: writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
                 except Exception as e:
                     print(tweet)
@@ -295,6 +291,13 @@ class MyStreamer(TwythonStreamer):
                 writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
                 
 if __name__ == "__main__":           
+    # Track filters and output file  
+    # Cassed as arguments
+    argv = sys.argv
+    outfile = "saved-tweets.csv" if len(argv) == 1 else sys.argv[1]
+    samesearch = True if len(argv) == 3 else False
+
+
     # Check correct arguments were given
     if len(argv) > 3:
         print("Usage:", os.path.basename(__file__), 
@@ -320,7 +323,7 @@ if __name__ == "__main__":
     # try/catch for clean exit after Ctrl-C
     try:
         # Start the stream
-        stream = MyStreamer(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
+        stream = Flocka(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
                             creds['ACCESS_KEY'], creds['ACCESS_SECRET'],
                             groups=groups, outfile=outfile)
 
