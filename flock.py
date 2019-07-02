@@ -183,7 +183,7 @@ def summarize(tweet, extra_fields = None):
                     new_tweet[field] = summarize(link_dict)
 
         elif field in ['retweeted_status', 'quoted_status', 'user', 'extended_tweet', 'entities']:
-            if field:
+            if value:
                 new_tweet[field] = summarize(value)
     return new_tweet
 
@@ -249,14 +249,14 @@ class MyStreamer(TwythonStreamer):
             basic = process_tweet(data)
             summary = summarize(data)
             basic['keyword'] = find_group(summary, self.groups)
-            if basic['keyword'] == "misc":
-                pp = pprint.PrettyPrinter(indent=2)
-                pp.pprint(data)
-                print("Summarized tweet --------------------------------")
-                pp.pprint(summary)
-                print("Keyword:", basic['keyword'])
-                sys.exit(1) 
-            self.save_to_csv(basic)
+            if basic['keyword'] != "misc":
+                #pp = pprint.PrettyPrinter(indent=2)
+                #pp.pprint(data)
+                #print("Summarized tweet --------------------------------")
+                #pp.pprint(summary)
+                #print("Keyword:", basic['keyword'])
+                #sys.exit(1) 
+                self.save_to_csv(basic)
             
             # Update stream status to console
             rows, columns = os.popen('stty size', 'r').read().split()
