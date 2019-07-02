@@ -6,9 +6,11 @@ import pprint
 import sys # For keyword 'track' arguments
 from twython import TwythonStreamer # Gateway to Twitter
 
-# Track filters and output file  can be passed as arguments
+# Track filters and output file  
+# Cassed as arguments
 argv = sys.argv
 outfile = "saved-tweets.csv" if len(argv) == 1 else sys.argv[1]
+samesearch = True if len(argv) == 3 else False
 
 '''
 Get keywords and labels from the user.
@@ -19,7 +21,11 @@ def get_search_terms():
     groups = []
     terms = {}
     
+    
     # Get the keywords for each tweet
+    if samesearch:
+        with open('./query.txt', 'r') as f:
+            return json.load(f)
     try:
         print("What do you want to search for?\n")
         print("Press enter to use previous query.")
@@ -290,9 +296,9 @@ class MyStreamer(TwythonStreamer):
                 
 if __name__ == "__main__":           
     # Check correct arguments were given
-    if len(argv) > 2:
+    if len(argv) > 3:
         print("Usage:", os.path.basename(__file__), 
-              "[outfile]")
+              "[outfile] [continue]")
         sys.exit(1)
 
     # Load Twitter API credentials
