@@ -72,7 +72,7 @@ def get_search_terms():
         print("Invalid input")
         sys.exit(1)
     
-    with open('query.txt', 'w') as f:
+    with open('query.txt', 'wb') as f:
         json.dump(terms, f)
 
     return terms
@@ -278,7 +278,7 @@ class MyStreamer(TwythonStreamer):
 
     # Save each tweet to csv file
     def save_to_csv(self, tweet):
-        with open(outfile, 'a') as f:
+        with open(outfile, 'ab') as f:
             if f.tell() == 0:
                 try: header = list(tweet.keys())
                 except Exception as e:
