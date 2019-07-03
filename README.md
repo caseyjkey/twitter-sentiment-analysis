@@ -22,7 +22,7 @@ git clone https://github.com/caseykey/flock
 cd flock
 python3 flock.py api-creds.json output.txt
 ```
-After exiting the process, the search can continue.
+Ctrl-C to exit the process, then continue the search.
 ```bash
 python3 flock.py api-creds.json output.txt go
 ```
