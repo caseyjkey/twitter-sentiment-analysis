@@ -136,7 +136,6 @@ def getHashtags(data):
 
 # Filter out unwanted data
 def process_tweet(tweet):
-    # print(json.dumps(tweet, indent=2))
     d = {}
     d['tweet_date'] = tweet['created_at']
     d['hashtags'] = [hashtag['text'] for hashtag in getHashtags(tweet)]
@@ -280,7 +279,7 @@ class Flocka(TwythonStreamer):
                 try: header = list(tweet.keys())
                 except Exception as e:
                     print(tweet)
-                writer = csv.DictWriter(f,fieldnames=header)
+                writer = csv.DictWriter(f,fieldnames=header, quoting=csv.QUOTE_MINIMAL)
                 writer.writeheader()
                 try: writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
                 except Exception as e:
