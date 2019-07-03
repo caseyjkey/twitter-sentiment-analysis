@@ -5,6 +5,7 @@ import os # For finding console width
 import pprint
 import sys # For keyword 'track' arguments
 from twython import TwythonStreamer # Gateway to Twitter
+from urllib3.exceptions import ProtocolError
 
 '''
 Get keywords and labels from the user.
@@ -321,12 +322,18 @@ if __name__ == "__main__":
 
     # try/catch for clean exit after Ctrl-C
     try:
-        # Start the stream
+        # Create a Flocka stream
         stream = Flocka(creds['CONSUMER_KEY'], creds['CONSUMER_SECRET'],
                             creds['ACCESS_KEY'], creds['ACCESS_SECRET'],
                             groups=groups, outfile=outfile)
 
-        stream.statuses.filter(track=tracks)
+        # Start stream, restart on error
+        # https://github.com/tweepy/tweepy/issues/908
+        while True:
+            try:
+                stream.statuses.filter(track=tracks)
+            except (ProtocolError, AttributeError):
+                continue
         
     except (KeyboardInterrupt, SystemExit):
         print("Saved", stream.total_tweets, "tweets in", datetime.datetime.now() - stream.start_time)
