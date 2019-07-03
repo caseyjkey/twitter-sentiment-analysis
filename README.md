@@ -32,7 +32,7 @@ from flock import Flock
 
 # save tweets to output.txt using previous search terms
 stream = Flock(json_creds='api_creds.json', output='output.txt', cont='go')
-stream.start() # begin reading tweets
+stream.start(quiet=False) # begin reading tweets
 ```
 
 ## Contributing

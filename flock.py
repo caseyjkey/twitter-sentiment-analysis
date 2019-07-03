@@ -8,7 +8,7 @@ from twython import TwythonStreamer # Gateway to Twitter
 from urllib3.exceptions import ProtocolError # For handling IncompleteRead error
 
 
-class Flock(object):
+class Flock(object): 
     def __init__(self, json_creds, output, cont):
         self._creds =  self.creds(json_creds)
         self._output = output
@@ -104,12 +104,13 @@ class Flock(object):
                 tracks.append(keyword)
         return tracks
     
-    def start(self):
+    def start(self, quiet=True):
         print("Streaming tweets about:")   
         for index, track in enumerate(self.tracks):
             print(str(index) + ". " + track)
 
         stream = self._flocka
+        stream.quiet = quiet
 
         # try/catch for clean exit after Ctrl-C
         try:
@@ -144,7 +145,12 @@ class Flocka(TwythonStreamer):
         self.total_difference = 0
         self.groups = groups
         self.outfile = outfile
+        self._quiet = True
         super().__init__(*creds)  
+
+    @quiet.setter
+    def quiet(self, value):
+        self._quiet = value
 
     @property
     def duration(self):
