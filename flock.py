@@ -148,6 +148,10 @@ class Flocka(TwythonStreamer):
         self._quiet = True
         super().__init__(*creds)  
 
+    @property
+    def quiet(self):
+        return self._quiet
+
     @quiet.setter
     def quiet(self, value):
         self._quiet = value

@@ -1,1 +1,1 @@
-{"casey key": ["casey key"]}
+{"btc": ["btc"], "ltc": ["ltc"]}

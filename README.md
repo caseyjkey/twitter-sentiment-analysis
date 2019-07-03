@@ -20,11 +20,11 @@ First create a twitter-creds.json file with your keys and tokens from a [Twitter
 ```bash
 git clone https://github.com/caseykey/flock
 cd flock
-python3 flock.py api-creds.json output.txt
+python3 flock.py output.txt
 ```
 Ctrl-C to exit the process, then continue the search.
 ```bash
-python3 flock.py api-creds.json output.txt go
+python3 flock.py output.txt go
 ```
 ### As a Python Module
 ```python
