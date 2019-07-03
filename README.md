@@ -1,9 +1,9 @@
 # Flock
 
-Flock is a Python library for dealing with complex Twitter streams.
+Flock is a Python library for collecting sets of data from Twitter.
 
-Twitter does not allow developers to stream from multiple tracks. 
-This tool allows developers to monitor a stream of many keywords, and group the tweets with labels. 
+Twitter does not allow streaming from multiple tracks. 
+This tool allows you to monitor a stream of many keywords, and group those tweets with labels. 
 
 ## Installation
 
@@ -15,10 +15,22 @@ pip install flock
 
 ## Usage
 
+```bash
+git clone https://github.com/caseykey/flock
+cd flock
+python3 flock.py api-creds.json output.txt
+```
+After exiting the process, the search can continue.
+```bash
+python3 flock.py api-creds.json output.txt go
+```
+
+
 ```python
 from flock import Flock
 
-stream = Flock('output.txt') # saves tweets to output.txt
+# save tweets to output.txt using previous search terms
+stream = Flock('api_creds.json', 'output.txt', 'continue')
 stream.start() # begin reading tweets
 ```
 
