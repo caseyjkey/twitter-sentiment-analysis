@@ -1,6 +1,6 @@
 # Flock
 
-Flock is a Python library for collecting sets of data from Twitter.
+Flock is a Python library for collecting real-time datasets from Twitter.
 
 Twitter does not allow streaming from multiple tracks. 
 This tool allows you to monitor a stream of many keywords, and group those tweets with labels. 
