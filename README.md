@@ -14,6 +14,17 @@ pip install flock
 ```
 
 ## Usage
+First create a json file with your keys and tokens from a [Twitter Developer] app.
+twitter-creds.json
+```json
+{
+    "CONSUMER_KEY": "apikeyhere123456abcdefgh",
+    "CONSUMER_SECRET": "consumersecrethere123456789abcdefghijklmnopqrstuv",
+    "ACCESS_KEY": "accesskeyhereaccesskeyhereaccesskeyhereaccesskey1",
+    "ACCESS_SECRET": "accesssecrethereaccesssecrethereaccesssecret12"
+}  
+``` 
+
 ### Command-line Script
 ```bash
 git clone https://github.com/caseykey/flock
@@ -29,7 +40,7 @@ python3 flock.py api-creds.json output.txt go
 from flock import Flock
 
 # save tweets to output.txt using previous search terms
-stream = Flock('api_creds.json', 'output.txt', 'continue')
+stream = Flock(json_creds='api_creds.json', output='output.txt', cont='go')
 stream.start() # begin reading tweets
 ```
 
