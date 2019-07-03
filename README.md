@@ -14,7 +14,7 @@ pip install flock
 ```
 
 ## Usage
-As a script from the command line.
+### Command-line Script
 ```bash
 git clone https://github.com/caseykey/flock
 cd flock
@@ -24,7 +24,7 @@ After exiting the process, the search can continue.
 ```bash
 python3 flock.py api-creds.json output.txt go
 ```
-# Usage as a Python module.
+### As a Python Module
 ```python
 from flock import Flock
 
