@@ -14,8 +14,7 @@ pip install flock
 ```
 
 ## Usage
-First create a json file with your keys and tokens from a [Twitter Developer] app.
-twitter-creds.json
+First create a twitter-creds.json file with your keys and tokens from a [Twitter Developer] app.
 ```json
 {
     "CONSUMER_KEY": "apikeyhere123456abcdefgh",
