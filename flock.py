@@ -257,8 +257,11 @@ class Streamer(TwythonStreamer):
                 Streamer.save_to_csv(self.outfile, basic)
             
             # Update stream status to console
-            rows, columns = os.popen('stty size', 'r').read().split()
-
+            try:
+                rows, columns = os.popen('stty size', 'r').read().split()
+            except:
+                # We are running headless
+                pass
             print('-' * int(columns))
             print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
             print("Keyword:", basic['keyword'], "Tweet:", basic['text'])
