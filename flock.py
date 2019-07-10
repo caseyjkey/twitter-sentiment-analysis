@@ -259,10 +259,11 @@ class Streamer(TwythonStreamer):
             # Update stream status to console
             try:
                 rows, columns = os.popen('stty size', 'r').read().split()
+                print('-' * int(columns))
             except:
+                print('-' * 10)
                 # We are running headless
-                pass
-            print('-' * int(columns))
+
             print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
             print("Keyword:", basic['keyword'], "Tweet:", basic['text'])
 
