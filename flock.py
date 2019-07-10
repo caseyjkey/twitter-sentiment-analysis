@@ -4,34 +4,33 @@ import json # Loading twitter credentials
 import os # For finding console width
 import pprint
 import sys # For keyword 'track' arguments
-from twython import TwythonStreamer # Gateway to Twitter
+from twython import Twython, TwythonStreamer # Gateway to Twitter
 from urllib3.exceptions import ProtocolError # For handling IncompleteRead error
 
 
 class Flock(object): 
     def __init__(self, json_creds, output, cont):
         self._creds =  self.creds(json_creds)
-        self._output = output
-        self._cont = cont
-        self._groups = self.get_search_terms() 
-        self._flocka = Flocka(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'],
-                              self._creds['ACCESS_KEY'], self._creds['ACCESS_SECRET'],
-                              groups=self._groups, outfile=self._output)
-    
-    
-    def get_search_terms(self): 
+        self._output = output # Output file
+        self._cont = cont # Continue last query
+        with open('./query.txt', 'r') as query:
+            self._groups = self.get_search_terms() if not cont else json.load(query)
+
+        self._streamer = Streamer(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'],
+                                  self._creds['ACCESS_KEY'], self._creds['ACCESS_SECRET'],
+                                  groups=self._groups, outfile=self._output)
+    @staticmethod 
+    def get_search_terms(): 
         '''
         Get keywords and labels from the user.
         For example "bitcoin" : {"btc", "bitcoin", "satoshi nakamoto"}
         Where "bitcoin" is the associated label for these search terms.
+            - Saves query to query.txt
+            - Returns a dictionary
         '''
         groups = []
         terms = {}
         
-        # Get the keywords for each tweet
-        if self._cont:
-            with open('./query.txt', 'r') as f:
-                return json.load(f)
         try:
             print("What do you want to search for?\n")
             print("Press enter to use previous query.")
@@ -40,12 +39,9 @@ class Flock(object):
 
             while True:
                 label = input("Search label: ")
-                print(label, bool(label))
                 # User entered empty input
                 if not label:
-                    print("yo")
                     if groups:
-                        print("groups")
                         raise ValueError("Done with labels")
                     else:
                         # Do we have a previous query to load?
@@ -78,7 +74,7 @@ class Flock(object):
             print("Invalid input")
             sys.exit(1)
        
-        print(terms)
+        # print(terms)
 
         with open('query.txt', 'w', newline='\n') as f:
             json.dump(terms, f)
@@ -109,7 +105,7 @@ class Flock(object):
         for index, track in enumerate(self.tracks):
             print(str(index) + ". " + track)
 
-        stream = self._flocka
+        stream = self._streamer
         stream.quiet = quiet
 
         # try/catch for clean exit after Ctrl-C
@@ -127,11 +123,83 @@ class Flock(object):
             
 
     
+    def fetch(self):
+        api = Twython(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'])
+        term_lists = [term for term in self._groups.values()]
+        terms = []
+        for tl in term_lists:
+            for term in tl:
+                terms.append(term)
+        print(terms)
+        input()
+        tweets = []
+        MAX_ATTEMPTS = 20
+        COUNT_OF_TWEETS_TO_BE_FETCHED = int(input("How many tweets would you like?: ")) 
+
+        for i in range(0,MAX_ATTEMPTS):
+
+            if(COUNT_OF_TWEETS_TO_BE_FETCHED < len(tweets)):
+                print("got 500 tweets")
+                break # we got 500 tweets... !!
+
+            #----------------------------------------------------------------#
+            # STEP 1: Query Twitter
+            # STEP 2: Save the returned tweets
+            # STEP 3: Get the next max_id
+            #----------------------------------------------------------------#
+
+            # STEP 1: Query Twitter
+            results = []
+            if(i == 0):
+                # Query twitter for data. 
+                for term in terms:
+                    results.append(api.search(q=term,count='100'))
+                print("i==0:", results)
+            else:
+                # After the first call we should have max_id from result of previous call. Pass it in query.
+                for term in terms:
+                    results.append(api.search(q=term,include_entities='true',max_id=next_max_id))
+                print("i else 0:", results)
+
+            # STEP 2: Save the returned tweets
+            for result in results:
+                for status in result['statuses']:
+                    print("Results:", len(results))
+                    # Only collect tweets in English
+                    #print("-----------------------\n\n\n\n\n\n\n\n")
+                    #pp = pprint.PrettyPrinter(indent=2)
+                    #pp.pprint(status)
+                    #print("Summarized tweet --------------------------------")
+                    #pp.pprint(summary)
+
+                    if status['lang'] == 'en':
+                        
+                        # Extract tweet and append to file
+                        basic = Streamer.process_tweet(status)
+                        summary = Streamer.summarize(status)
+                        # Note Streamer uses self.groups, not _groups. 
+                        # TODO: Fix consistency
+                        basic['keyword'] = Streamer.find_group(summary, self._groups)
+                        if basic['keyword'] != "misc":
+                            print("Tweet saved:", basic)
+                            Streamer.save_to_csv(self._output, basic)
+
+
+            # STEP 3: Get the next max_id
+            try:
+                # Parse the data returned to get max_id to be passed in consequent call.
+                next_results_url_params = result['search_metadata']['next_results']
+                next_max_id = next_results_url_params.split('max_id=')[1].split('&')[0]
+            except:
+                # No more next pages
+                break
+
+
 '''
-Flocka takes api credentials, a "groups" dictionary, and an outfile
+Streamer takes api credentials, a "groups" dictionary, and an outfile
 Used by the Flock class.
 '''
-class Flocka(TwythonStreamer):
+class Streamer(TwythonStreamer):
     # start_time = None
     # last_tweet_time = None
     # total_tweets = None
@@ -176,9 +244,9 @@ class Flocka(TwythonStreamer):
             self.last_tweet_time = tweet_time
             
             # Extract tweet and append to file
-            basic = self.process_tweet(data)
-            summary = self.summarize(data)
-            basic['keyword'] = self.find_group(summary, self.groups)
+            basic = Streamer.process_tweet(data)
+            summary = Streamer.summarize(data)
+            basic['keyword'] = Streamer.find_group(summary, self.groups)
             if basic['keyword'] != "misc":
                 #pp = pprint.PrettyPrinter(indent=2)
                 #pp.pprint(data)
@@ -186,7 +254,7 @@ class Flocka(TwythonStreamer):
                 #pp.pprint(summary)
                 #print("Keyword:", basic['keyword'])
                 #sys.exit(1) 
-                self.save_to_csv(basic)
+                Streamer.save_to_csv(self.outfile, basic)
             
             # Update stream status to console
             rows, columns = os.popen('stty size', 'r').read().split()
@@ -201,8 +269,9 @@ class Flocka(TwythonStreamer):
         self.disconnect()
 
     # Save each tweet to csv file
-    def save_to_csv(self, tweet):
-        with open(self.outfile, 'a', newline='\n') as f:
+    @staticmethod
+    def save_to_csv(outfile, tweet):
+        with open(outfile, 'a', newline='\n') as f:
             if f.tell() == 0:
                 try: header = list(tweet.keys())
                 except Exception as e:
@@ -222,7 +291,8 @@ class Flocka(TwythonStreamer):
     Used for sanitizing input for ADW
     Credit: https://bit.ly/2NhKy4f
     '''
-    def deEmojify(self, inputString):
+    @staticmethod
+    def deEmojify(inputString):
         return inputString.encode('ascii', 'ignore').decode('ascii')
 
     '''
@@ -230,7 +300,8 @@ class Flocka(TwythonStreamer):
     Where "data" is an individual tweet, treated as JSON / dict
     Inspired by: colditzjb @ https://github.com/tweepy/tweepy/issues/878
     '''
-    def getText(self, data):       
+    @staticmethod
+    def getText(data):       
         # Try for extended text of original tweet, if RT'd (streamer)
         try: text = data['retweeted_status']['extended_tweet']['full_text']
         except: 
@@ -258,7 +329,8 @@ class Flocka(TwythonStreamer):
     Where "data" is an individual tweet, treated as JSON / dict
     Inspired by: colditzjk @ https://github.com/tweepy/tweepy/issues/878
     '''
-    def getHashtags(self, data):            
+    @staticmethod
+    def getHashtags(data):            
         try: text = data['quoted_status']['extended_tweet']['entities']['hashtags']
         except:
             # Try for extended text of original tweet, if RT'd (streamer)
@@ -282,18 +354,19 @@ class Flocka(TwythonStreamer):
         return text
 
     # Filter out unwanted data
-    def process_tweet(self, tweet):
+    @staticmethod
+    def process_tweet(tweet):
         d = {}
         d['tweet_date'] = tweet['created_at']
-        d['hashtags'] = [hashtag['text'] for hashtag in self.getHashtags(tweet)]
-        text = self.getText(tweet)
-        text = self.deEmojify(text) 
+        d['hashtags'] = [hashtag['text'] for hashtag in Streamer.getHashtags(tweet)]
+        text = Streamer.getText(tweet)
+        text = Streamer.deEmojify(text) 
         text = text.lower().replace("\n", " ")
         d['text'] = text
-        d['twitter_user'] = self.deEmojify(tweet['user']['screen_name'])
+        d['twitter_user'] = Streamer.deEmojify(tweet['user']['screen_name'])
         location = tweet['user']['location']
         if location:
-            location = self.deEmojify(location)
+            location = Streamer.deEmojify(location)
         d['user_loc'] = location 
         return d
 
@@ -303,7 +376,8 @@ class Flocka(TwythonStreamer):
     Returns a dictionary
     Credit: https://gwu-libraries.github.io/sfm-ui/posts/2016-11-10-twitter-interaction
     '''
-    def summarize(self, tweet, extra_fields = None):
+    @staticmethod
+    def summarize(tweet, extra_fields = None):
         new_tweet = {}
         for field, value in tweet.items():
             if field in ['text', 'full_text', 'screen_name', 'expanded_url', 'display_url'] and value is not None:
@@ -311,7 +385,7 @@ class Flocka(TwythonStreamer):
                     new_tweet['tweet_date'] = tweet[field]
                 elif field == 'text' or field == 'full_text':
                     text = tweet[field]
-                    text = self.deEmojify(text)
+                    text = Streamer.deEmojify(text)
                     text = text.lower().replace('\n', ' ')
                     new_tweet[field] = text
                 elif field == 'screen_name':
@@ -324,16 +398,16 @@ class Flocka(TwythonStreamer):
             
             elif field == 'hashtags' and len(value):
                 for hashtag in value:
-                    self.summarize(hashtag)
+                    Streamer.summarize(hashtag)
 
             elif field == 'urls':
                 if type(value) == list and len(value):
                     for link_dict in value:
-                        new_tweet[field] = self.summarize(link_dict)
+                        new_tweet[field] = Streamer.summarize(link_dict)
 
             elif field in ['retweeted_status', 'quoted_status', 'user', 'extended_tweet', 'entities']:
                 if value:
-                    new_tweet[field] = self.summarize(value)
+                    new_tweet[field] = Streamer.summarize(value)
         return new_tweet
 
 
@@ -342,15 +416,17 @@ class Flocka(TwythonStreamer):
     We can use this to inste ad "tally" the occurences of each group
     By changing to tweet[group] = 1
     '''
-    def find_group(self, tweet, groups):
+    @staticmethod
+    def find_group(tweet, groups):
         for group, keywords in groups.items():
             found = False
-            found = self.find_keyword(tweet, keywords, found)
+            found = Streamer.find_keyword(tweet, keywords, found)
             if(found):
                 return group
         return 'misc'
-
-    def find_keyword(self, tweet, keywords, found):
+    
+    @staticmethod
+    def find_keyword(tweet, keywords, found):
         if type(tweet) == str: 
             for keyword in keywords:
                 for word in keyword.split():
@@ -359,10 +435,14 @@ class Flocka(TwythonStreamer):
                         return True
         else:
             for key, value in tweet.items():
-                found = self.find_keyword(value, keywords, found)
+                found = Streamer.find_keyword(value, keywords, found)
             
         return found
-       
+
+class Tweet:
+    # TODO: Move Streamer static methods to here
+    pass
+
 if __name__ == '__main__':           
     # Save filters and output file  
     argv = sys.argv
@@ -379,7 +459,7 @@ if __name__ == '__main__':
 
  
     stream = Flock(creds, outfile, samesearch)
-    stream.start()  
+    stream.fetch()  
         
 
 
