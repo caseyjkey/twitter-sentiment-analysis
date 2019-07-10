@@ -134,7 +134,7 @@ class Flock(object):
         input()
         tweets = []
         MAX_ATTEMPTS = 20
-        COUNT_OF_TWEETS_TO_BE_FETCHED = int(input("How many tweets would you like?: ")) 
+        COUNT_OF_TWEETS_TO_BE_FETCHED = 5000000000000  # int(input("How many tweets would you like?: ")) 
 
         for i in range(0,MAX_ATTEMPTS):
 
@@ -462,7 +462,7 @@ if __name__ == '__main__':
 
  
     stream = Flock(creds, outfile, samesearch)
-    stream.fetch()  
+    stream.start()  
         
 
 
