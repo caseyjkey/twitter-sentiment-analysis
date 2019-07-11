@@ -284,7 +284,7 @@ class Streamer(TwythonStreamer):
             
         except KeyError as e:
             with open('errors.txt', 'a') as f:
-                    f.write('KeyError:', e)
+                    f.write('KeyError: ' + str(e))
                     f.write(data)
     
     # Problem with the API
