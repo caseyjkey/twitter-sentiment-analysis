@@ -1,3 +1,8 @@
+'''
+Flock is a tool for fetching historical tweets or for streaming tweets live
+Created by: Casey Key, SE Intern
+Created: July 20th, 2019
+'''
 import csv # Exporting tweets
 import datetime # Calculate rate of tweets
 import json # Loading twitter credentials
