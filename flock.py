@@ -172,7 +172,7 @@ class Flock(object):
                     #print("Summarized tweet --------------------------------")
                     #pp.pprint(summary)
 
-                    if status['lang'] == 'en':
+                    if 'lang' in status and status['lang'] == 'en':
                         
                         # Extract tweet and append to file
                         basic = Streamer.process_tweet(status)
@@ -231,42 +231,57 @@ class Streamer(TwythonStreamer):
     # Received data
     def on_success(self, data):
             
-        
-        # Only collect tweets in English
-        if data['lang'] == 'en':
-            self.total_tweets += 1
+        try: 
+            # Only collect tweets in English
+            if data['lang'] == 'en':
+                self.total_tweets += 1
+                
+                # Calculate average time per tweet
+                tweet_time = datetime.datetime.now()
+                tweet_time_difference = tweet_time - self.last_tweet_time
+                self.total_difference += tweet_time_difference.total_seconds()
+                avg_time_per_tweet = self.total_difference / self.total_tweets
+                self.last_tweet_time = tweet_time
+                
+                # Extract tweet and append to file
+                basic = Streamer.process_tweet(data)
+                summary = Streamer.summarize(data)
+                basic['keyword'] = Streamer.find_group(summary, self.groups)
+                if basic['keyword'] != "misc":
+                    #pp = pprint.PrettyPrinter(indent=2)
+                    #pp.pprint(data)
+                    #print("Summarized tweet --------------------------------")
+                    #pp.pprint(summary)
+                    #print("Keyword:", basic['keyword'])
+                    #sys.exit(1) 
+                    Streamer.save_to_csv(self.outfile, basic)
+                else:
+                    with('errors.txt', 'a') as f:
+                        f.write('Tweet filed under "misc":')
+                        pp = pprint.PrettyPrinter(indent=2, stream=f)
+                        f.write("Data:\n")
+                        pp.pprint(data)
+                        f.write("Summary:\n")
+                        pp.pprint(summary)
+                        f.write("Summary:\n", summary, "\n", self.groups)
+                        print("Misc logged\n")
+                        return
+                
+                # Update stream status to console
+                try:
+                    rows, columns = os.popen('stty size', 'r').read().split()
+                    print('-' * int(columns))
+                except:
+                    # We are running headless
+                    print('-' * 10)
+                print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
+                print("Keyword:", basic['keyword'], "Tweet:", basic['text'])
             
-            # Calculate average time per tweet
-            tweet_time = datetime.datetime.now()
-            tweet_time_difference = tweet_time - self.last_tweet_time
-            self.total_difference += tweet_time_difference.total_seconds()
-            avg_time_per_tweet = self.total_difference / self.total_tweets
-            self.last_tweet_time = tweet_time
-            
-            # Extract tweet and append to file
-            basic = Streamer.process_tweet(data)
-            summary = Streamer.summarize(data)
-            basic['keyword'] = Streamer.find_group(summary, self.groups)
-            if basic['keyword'] != "misc":
-                #pp = pprint.PrettyPrinter(indent=2)
-                #pp.pprint(data)
-                #print("Summarized tweet --------------------------------")
-                #pp.pprint(summary)
-                #print("Keyword:", basic['keyword'])
-                #sys.exit(1) 
-                Streamer.save_to_csv(self.outfile, basic)
-            
-            # Update stream status to console
-           # try:
-           #     rows, columns = os.popen('stty size', 'r').read().split()
-           #     print('-' * int(columns))
-           # except:
-            print('-' * 10)
-                # We are running headless
-
-            print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
-            print("Keyword:", basic['keyword'], "Tweet:", basic['text'])
-
+        except KeyError as e:
+            with open('errors.txt', 'a') as f:
+                    f.write('KeyError:', e)
+                    f.write(data)
+    
     # Problem with the API
     def on_error(self, status_code, data):
         print(status_code, data)
