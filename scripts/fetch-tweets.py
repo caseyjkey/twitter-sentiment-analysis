@@ -1,6 +1,5 @@
 import json
 import pandas as pd
-from flock import Flocka
 from twython import Twython
 
 # Load Twitter API credentials
@@ -18,20 +17,11 @@ query = {'q': 'Oracle',
         }
 
 # Search tweets
-t_dict = {'tweet_date': [], 'hashtags': [], 'text': [], 'twitter_user': [], 'user_loc': [], 'keyword': [] }
-deEmojify = Flocka.deEmojify
-getHashtags
-
-            # Extract tweet and append to file
-            basic = self.process_tweet(data)
-            summary = self.summarize(data)
-            basic['keyword'] = self.find_group(summary, self.groups)
-
-
+t_dict = {'user': [], 'date': [], 'text': [], 'favorite_count': []}
 for status in python_tweets.search(**query)['statuses']:
-    t_dict['twitter_user'].append(deEmojify(object, status['user']['screen_name']))
-    t_dict['tweet_date'].append(status['created_at'])
-    t_dict['text'].append(deEmojify(object, status['text']))
+    t_dict['user'].append(status['user']['screen_name'])
+    t_dict['date'].append(status['created_at'])
+    t_dict['text'].append(status['text'])
     t_dict['favorite_count'].append(status['favorite_count'])
 
 df = pd.DataFrame(t_dict)
