@@ -17,22 +17,39 @@ First create a twitter-creds.json file with your keys and tokens from a [Twitter
 ``` 
 
 ### Command-line Script
+To enter a custom search query and save tweets to output.txt,
+execute this command from a shell.
 ```bash
 git clone https://github.com/caseykey/flock
 cd flock
 python3 flock.py output.txt
 ```
-Ctrl-C to exit the process, then continue the search.
+Ctrl-C to exit the process.
+To continue the previous search contained in query.txt, execute:
 ```bash
 python3 flock.py output.txt go
 ```
 ### As a Python Module
+General streaming usage:
 ```python
 from flock import Flock
 
 # save tweets to output.txt using previous search terms
 stream = Flock(json_creds='api_creds.json', output='output.txt', cont='go')
 stream.start(quiet=False) # begin reading tweets
+```
+
+To fetch historial tweets, use:
+```
+from flock import Flock
+
+# save tweets to output.txt using previous search terms
+stream = Flock(json_creds='api_creds.json', output='output.txt', cont='go')
+'''
+Change fetch's cont argument to True if you want to continue a from
+the date of the last tweet in an existing file.
+'''
+stream.fetch(cont=False)
 ```
 
 ## Contributing
