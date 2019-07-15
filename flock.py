@@ -9,6 +9,7 @@ import json # Loading twitter credentials
 import os # For finding console width
 import pprint
 import sys # For keyword 'track' arguments
+import time # For finding last tweet in previous fetch
 from twython import Twython, TwythonStreamer # Gateway to Twitter
 from urllib3.exceptions import ProtocolError # For handling IncompleteRead error
 
@@ -128,15 +129,28 @@ class Flock(object):
             
 
     
-    def fetch(self):
+    def fetch(self, cont=False):
         api = Twython(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'])
         term_lists = [term for term in self._groups.values()]
         terms = []
         for tl in term_lists:
             for term in tl:
                 terms.append(term)
-        print(terms)
-        input()
+        print("Fetching tweets matching: ", terms)
+        input("Press enter to continue.")
+        
+        last_date = datetime.datetime.now()
+        if cont:
+            # Credit: Dave @ https://bit.ly/2JGPcUw
+            with open('_output', 'rb') as f:
+                f.seek(-2, os.SEEK_END)
+                while f.read(1) != b'\n':
+                    f.seek(-2, os.SEEK_CUR)
+                last_tweet = f.readline().decode())
+            tweet_items = last_tweet.split(',')
+            last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
+            print("Starting fetch from:", last_date)
+
         tweets = []
         MAX_ATTEMPTS = 20
         COUNT_OF_TWEETS_TO_BE_FETCHED = 5000000000000  # int(input("How many tweets would you like?: ")) 
@@ -186,8 +200,9 @@ class Flock(object):
                         # TODO: Fix consistency
                         basic['keyword'] = Streamer.find_group(summary, self._groups)
                         if basic['keyword'] != "misc":
-                            print("Tweet saved:", basic)
-                            Streamer.save_to_csv(self._output, basic)
+                            if cont == False or summary['tweet_date'] > last_date:
+                                print("Tweet saved:", basic)
+                                Streamer.save_to_csv(self._output, basic)
 
 
             # STEP 3: Get the next max_id
@@ -349,7 +364,7 @@ class Streamer(TwythonStreamer):
         return text
 
     '''
-    This loads the most comprehensive text portion of the tweet  
+    This loads the most comprehensive hashtag portion of the tweet  
     Where "data" is an individual tweet, treated as JSON / dict
     Inspired by: colditzjk @ https://github.com/tweepy/tweepy/issues/878
     '''
