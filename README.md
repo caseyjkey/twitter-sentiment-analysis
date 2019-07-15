@@ -40,7 +40,7 @@ stream.start(quiet=False) # begin reading tweets
 ```
 
 To fetch historial tweets, use:
-```
+```python
 from flock import Flock
 
 # save tweets to output.txt using previous search terms
