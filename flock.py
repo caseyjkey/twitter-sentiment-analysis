@@ -38,7 +38,7 @@ class Flock(object):
         terms = {}
         
         try:
-            print("What do you want to search for?\n")
+            print("What topics do you want to search for?\n")
             print("Press enter to use previous query.")
             print("Enter one topic per prompt.")
             print("Then, press enter when complete.\n")
@@ -59,7 +59,8 @@ class Flock(object):
                         continue
                 groups.append(label)
 
-        # What search terms are associated with each tweet?
+        # User finished adding topics
+        # Now user adds  search terms associated with each topic
         except ValueError:
             print("\nEnter the keywords for your search.") 
             print("Press enter to continue.\n")
@@ -122,6 +123,7 @@ class Flock(object):
                 try:
                     stream.statuses.filter(track=self.tracks)
                 except (ProtocolError, AttributeError):
+                    time.sleep(3)
                     continue
             
         except (KeyboardInterrupt, SystemExit):
