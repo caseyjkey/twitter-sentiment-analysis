@@ -142,21 +142,21 @@ class Flock(object):
         last_date = datetime.datetime.now()
         if cont:
             # Credit: Dave @ https://bit.ly/2JGPcUw
-            with open('_output', 'rb') as f:
+            with open(self._output, 'rb') as f:
                 f.seek(-2, os.SEEK_END)
                 while f.read(1) != b'\n':
                     f.seek(-2, os.SEEK_CUR)
-                last_tweet = f.readline().decode())
+                last_tweet = f.readline().decode()
             tweet_items = last_tweet.split(',')
             last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
-            print("Starting fetch from:", last_date)
+            print("Starting fetch from:", time.strftime('%a %b %d %H:%M:%S +0000 %Y', last_date))
 
         tweets = []
         MAX_ATTEMPTS = 20
         COUNT_OF_TWEETS_TO_BE_FETCHED = 5000000000000  # int(input("How many tweets would you like?: ")) 
 
         for i in range(0,MAX_ATTEMPTS):
-
+            print("Attempt:", i)
             if(COUNT_OF_TWEETS_TO_BE_FETCHED < len(tweets)):
                 print("got 500 tweets")
                 break # we got 500 tweets... !!
@@ -170,18 +170,25 @@ class Flock(object):
             # STEP 1: Query Twitter
             results = []
             if(i == 0):
-                # Query twitter for data. 
+                # Query twitter for data.
+                print("Query pt.1")
                 for term in terms:
+                    print("term: ", term)
                     results.append(api.search(q=term,count='100'))
+                    print("results:", len(results))
                 print("i==0:", results)
             else:
                 # After the first call we should have max_id from result of previous call. Pass it in query.
+                print('Query pt.2')
                 for term in terms:
+                    print("term: ", term)
                     results.append(api.search(q=term,include_entities='true',max_id=next_max_id))
+                    print("results:", len(results))
                 print("i else 0:", results)
 
             # STEP 2: Save the returned tweets
             for result in results:
+                print("result")
                 for status in result['statuses']:
                     print("Results:", len(results))
                     # Only collect tweets in English
@@ -200,8 +207,10 @@ class Flock(object):
                         # TODO: Fix consistency
                         basic['keyword'] = Streamer.find_group(summary, self._groups)
                         if basic['keyword'] != "misc":
-                            if cont == False or summary['tweet_date'] > last_date:
-                                print("Tweet saved:", basic)
+
+                            date = time.strptime(basic['tweet_date'], '%a %b %d %H:%M:%S +0000 %Y')
+                            if cont == False or date > last_date:
+                                # print("Tweet saved:", basic)
                                 Streamer.save_to_csv(self._output, basic)
 
 
@@ -498,7 +507,8 @@ if __name__ == '__main__':
 
  
     stream = Flock(creds, outfile, samesearch)
-    stream.start()  
+    # stream.start()  
+    stream.fetch(cont=True)
         
 
 
