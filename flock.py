@@ -507,8 +507,8 @@ if __name__ == '__main__':
 
  
     stream = Flock(creds, outfile, samesearch)
-    # stream.start()  
-    stream.fetch(cont=True)
+    stream.start()  
+    # stream.fetch(cont=True)
         
 
 
