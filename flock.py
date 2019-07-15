@@ -122,7 +122,8 @@ class Flock(object):
             while True:
                 try:
                     stream.statuses.filter(track=self.tracks)
-                except (ProtocolError, AttributeError):
+                except (ProtocolError, AttributeError) as e:
+                    print("Error:", e)
                     time.sleep(3)
                     continue
             
