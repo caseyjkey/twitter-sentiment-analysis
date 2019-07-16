@@ -39,7 +39,7 @@ stream = Flock(json_creds='api_creds.json', output='output.txt', cont='go')
 stream.start(quiet=False) # begin reading tweets
 ```
 
-To fetch historial tweets, use:
+To fetch historical tweets, use:
 ```python
 from flock import Flock
 
