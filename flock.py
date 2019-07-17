@@ -7,11 +7,73 @@ import csv # Exporting tweets
 import datetime # Calculate rate of tweets
 import json # Loading twitter credentials
 import os # For finding console width
-import pprint
+import pprint # For printing dicts such as Tweet data
 import sys # For keyword 'track' arguments
 import time # For finding last tweet in previous fetch
 from twython import Twython, TwythonStreamer # Gateway to Twitter
 from urllib3.exceptions import ProtocolError # For handling IncompleteRead error
+
+def get_search_terms(): 
+    '''
+    Get keywords and labels from the user.
+    For example "bitcoin" : {"btc", "bitcoin", "satoshi nakamoto"}
+    Where "bitcoin" is the associated label for these search terms.
+        - Saves query to query.txt
+        - Returns a dictionary
+    '''
+    groups = []
+    terms = {}
+    
+    try:
+        print("What topics do you want to search for?\n")
+        print("Press enter to use previous query.")
+        print("Enter one topic per prompt.")
+        print("Then, press enter when complete.\n")
+
+        while True:
+            label = input("Search label: ")
+            # User entered empty input
+            if not label:
+                if groups:
+                    raise ValueError("Done with labels")
+                else:
+                    # Do we have a previous query to load?
+                    try:
+                        with open('./query.txt', 'r') as f:
+                            return json.load(f)
+                    except FileNotFound as e:
+                        print(e, ": must enter at least one label")
+                    continue
+            groups.append(label)
+
+    # User finished adding topics
+    # Now user adds  search terms associated with each topic
+    except ValueError:
+        print("\nEnter the keywords for your search.") 
+        print("Press enter to continue.\n")
+        for label in groups:
+            terms[label] = [label]  
+            try:
+                while True:
+                    keyword = input("Keyword for " + label + ": ")
+                    if not keyword:
+                        raise ValueError("Done with keywords")
+                    if keyword not in terms[label]:
+                        terms[label].append(keyword)
+            except:
+                continue
+    
+    except Exception as inst:
+        print("Exception:", inst)
+        print("Invalid input")
+        sys.exit(1)
+   
+    # print(terms)
+
+    with open('query.txt', 'w', newline='\n') as f:
+        json.dump(terms, f)
+
+    return terms
 
 
 class Flock(object): 
@@ -20,74 +82,12 @@ class Flock(object):
         self._output = output # Output file
         self._cont = cont # Continue last query
         with open('./query.txt', 'r') as query:
-            self._groups = self.get_search_terms() if not cont else json.load(query)
+            self._groups = get_search_terms() if not cont else json.load(query)
 
         self._streamer = Streamer(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'],
                                   self._creds['ACCESS_KEY'], self._creds['ACCESS_SECRET'],
                                   groups=self._groups, outfile=self._output)
-    @staticmethod 
-    def get_search_terms(): 
-        '''
-        Get keywords and labels from the user.
-        For example "bitcoin" : {"btc", "bitcoin", "satoshi nakamoto"}
-        Where "bitcoin" is the associated label for these search terms.
-            - Saves query to query.txt
-            - Returns a dictionary
-        '''
-        groups = []
-        terms = {}
         
-        try:
-            print("What topics do you want to search for?\n")
-            print("Press enter to use previous query.")
-            print("Enter one topic per prompt.")
-            print("Then, press enter when complete.\n")
-
-            while True:
-                label = input("Search label: ")
-                # User entered empty input
-                if not label:
-                    if groups:
-                        raise ValueError("Done with labels")
-                    else:
-                        # Do we have a previous query to load?
-                        try:
-                            with open('./query.txt', 'r') as f:
-                                return json.load(f)
-                        except FileNotFound as e:
-                            print(e, ": must enter at least one label")
-                        continue
-                groups.append(label)
-
-        # User finished adding topics
-        # Now user adds  search terms associated with each topic
-        except ValueError:
-            print("\nEnter the keywords for your search.") 
-            print("Press enter to continue.\n")
-            for label in groups:
-                terms[label] = [label]  
-                try:
-                    while True:
-                        keyword = input("Keyword for " + label + ": ")
-                        if not keyword:
-                            raise ValueError("Done with keywords")
-                        if keyword not in terms[label]:
-                            terms[label].append(keyword)
-                except:
-                    continue
-        
-        except Exception as inst:
-            print("Exception:", inst)
-            print("Invalid input")
-            sys.exit(1)
-       
-        # print(terms)
-
-        with open('query.txt', 'w', newline='\n') as f:
-            json.dump(terms, f)
-
-        return terms
-    
     def creds(self, json_creds):
         # Load Twitter API credentials
         if type(json_creds) is dict:
@@ -144,6 +144,7 @@ class Flock(object):
         
         last_date = datetime.datetime.now()
         if cont:
+            # Read last line (Tweet) in output file
             # Credit: Dave @ https://bit.ly/2JGPcUw
             with open(self._output, 'rb') as f:
                 f.seek(-2, os.SEEK_END)
@@ -193,7 +194,7 @@ class Flock(object):
             for result in results:
                 print("result")
                 for status in result['statuses']:
-                    print("Results:", len(results))
+                    print("Results:", len(result))
                     # Only collect tweets in English
                     #print("-----------------------\n\n\n\n\n\n\n\n")
                     #pp = pprint.PrettyPrinter(indent=2)
@@ -201,20 +202,20 @@ class Flock(object):
                     #print("Summarized tweet --------------------------------")
                     #pp.pprint(summary)
 
-                    if 'lang' in status and status['lang'] == 'en':
+                    if status.get('lang', None) == 'en':
                         
                         # Extract tweet and append to file
-                        basic = Streamer.process_tweet(status)
-                        summary = Streamer.summarize(status)
+                        basic = Tweet.process_tweet(status)
+                        summary = Tweet.summarize(status)
                         # Note Streamer uses self.groups, not _groups. 
                         # TODO: Fix consistency
-                        basic['keyword'] = Streamer.find_group(summary, self._groups)
+                        basic['keyword'] = Tweet.find_group(summary, self._groups)
                         if basic['keyword'] != "misc":
 
                             date = time.strptime(basic['tweet_date'], '%a %b %d %H:%M:%S +0000 %Y')
                             if cont == False or date > last_date:
                                 # print("Tweet saved:", basic)
-                                Streamer.save_to_csv(self._output, basic)
+                                Tweet.save_to_csv(self._output, basic)
 
 
             # STEP 3: Get the next max_id
@@ -262,12 +263,9 @@ class Streamer(TwythonStreamer):
 
     # Received data
     def on_success(self, data):
-            
-        try: 
-            # Only collect tweets in English
-            if data['lang'] == 'en':
-                self.total_tweets += 1
-                
+        # Only collect tweets in English
+        lang = data.get('lang', None)
+        if lang == 'en':
                 # Calculate average time per tweet
                 tweet_time = datetime.datetime.now()
                 tweet_time_difference = tweet_time - self.last_tweet_time
@@ -276,48 +274,51 @@ class Streamer(TwythonStreamer):
                 self.last_tweet_time = tweet_time
                 
                 # Extract tweet and append to file
-                basic = Streamer.process_tweet(data)
-                summary = Streamer.summarize(data)
-                basic['keyword'] = Streamer.find_group(summary, self.groups)
+                basic = Tweet.process_tweet(data)
+                summary = Tweet.summarize(data)
+                basic['keyword'] = Tweet.find_group(summary, self.groups)
                 if basic['keyword'] != "misc":
-                    #pp = pprint.PrettyPrinter(indent=2)
-                    #pp.pprint(data)
-                    #print("Summarized tweet --------------------------------")
-                    #pp.pprint(summary)
-                    #print("Keyword:", basic['keyword'])
-                    #sys.exit(1) 
-                    Streamer.save_to_csv(self.outfile, basic)
+                    Tweet.save_to_csv(self.outfile, basic)
                 else:
                     with('errors.txt', 'a') as f:
-                        f.write('Tweet filed under "misc":')
+                        error_time = datetime.datetime.now()
                         pp = pprint.PrettyPrinter(indent=2, stream=f)
-                        f.write("Data:\n")
+                        f.write('-'*20)
+                        f.write(str(error_time) + ': Tweet filed under "misc":')
+                        f.write('-'*10 + "Data" + '-'*10 + '\n')
                         pp.pprint(data)
-                        f.write("Summary:\n")
+                        f.write("-"*10 + "Summary" + "-"*10 + '\n')
                         pp.pprint(summary)
-                        f.write("Summary:\n", summary, "\n", self.groups)
-                        print("Misc logged\n")
+                        f.write('-'*10 + 'Groups' + '-'*10 + '\n')
+                        pp.pprint(self.groups)
+                        f.write('-'*20)
+                        print(str(error_time) + ": Misc logged\n")
                         return
                 
                 # Update stream status to console
                 try:
                     rows, columns = os.popen('stty size', 'r').read().split()
                     print('-' * int(columns))
+                # We are running headless
                 except:
-                    # We are running headless
                     print('-' * 10)
+                
                 print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
                 print("Keyword:", basic['keyword'], "Tweet:", basic['text'])
             
-        except KeyError as e:
-            with open('errors.txt', 'a') as f:
-                    f.write('KeyError: ' + str(e))
-                    f.write(str(data))
+        
     
     # Problem with the API
     def on_error(self, status_code, data):
         print(status_code, data)
         self.disconnect()
+
+'''
+Methods for processing Tweets
+'''
+class Tweet:
+    # TODO: Make a tweet object have the attributes: summary, basic, and keyword
+    # TODO: Add methods for printing out the atributes
 
     # Save each tweet to csv file
     @staticmethod
@@ -431,10 +432,9 @@ class Streamer(TwythonStreamer):
     def summarize(tweet, extra_fields = None):
         new_tweet = {}
         for field, value in tweet.items():
-            if field in ['text', 'full_text', 'screen_name', 'expanded_url', 'display_url'] and value is not None:
-                if field == 'created_at':
-                    new_tweet['tweet_date'] = tweet[field]
-                elif field == 'text' or field == 'full_text':
+            if field in ['text', 'full_text', 'screen_name', \
+                         'expanded_url', 'display_url'] and value is not None:
+                if field == 'text' or field == 'full_text':
                     text = tweet[field]
                     text = Streamer.deEmojify(text)
                     text = text.lower().replace('\n', ' ')
@@ -445,8 +445,15 @@ class Streamer(TwythonStreamer):
                     new_tweet[field] = value
             
             elif extra_fields and field in extra_fields:
-                new_tweet[field] = value
-            
+                if field == 'created_at':
+                    new_tweet['tweet_date'] = tweet[field]
+                else:
+                    new_tweet[field] = value
+
+            elif field in ['retweeted_status', 'quoted_status', 'user', 'extended_tweet', 'entities']:
+                if value:
+                    new_tweet[field] = Streamer.summarize(value)
+
             elif field == 'hashtags' and len(value):
                 for hashtag in value:
                     Streamer.summarize(hashtag)
@@ -455,17 +462,15 @@ class Streamer(TwythonStreamer):
                 if type(value) == list and len(value):
                     for link_dict in value:
                         new_tweet[field] = Streamer.summarize(link_dict)
-
-            elif field in ['retweeted_status', 'quoted_status', 'user', 'extended_tweet', 'entities']:
-                if value:
-                    new_tweet[field] = Streamer.summarize(value)
+                        
         return new_tweet
 
 
-
     '''
-    We can use this to inste ad "tally" the occurences of each group
-    By changing to tweet[group] = 1
+    This method determnes the search term
+    used for this tweet.
+    Note: We can use this to "tally" the occurences of each term
+    By changing to tweet[groups][keyword] = 1
     '''
     @staticmethod
     def find_group(tweet, groups):
@@ -475,7 +480,10 @@ class Streamer(TwythonStreamer):
             if(found):
                 return group
         return 'misc'
-    
+   
+    '''
+    Helper method for find_group
+    '''
     @staticmethod
     def find_keyword(tweet, keywords, found):
         if type(tweet) == str: 
@@ -487,12 +495,7 @@ class Streamer(TwythonStreamer):
         else:
             for key, value in tweet.items():
                 found = Streamer.find_keyword(value, keywords, found)
-            
         return found
-
-class Tweet:
-    # TODO: Move Streamer static methods to here
-    pass
 
 if __name__ == '__main__':           
     # Save filters and output file  
@@ -510,8 +513,7 @@ if __name__ == '__main__':
 
  
     stream = Flock(creds, outfile, samesearch)
-    stream.start()  
-    # stream.fetch(cont=True)
-        
+    stream.fetch(cont=True)
+    stream.start()       
 
 
