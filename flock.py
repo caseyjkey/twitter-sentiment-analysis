@@ -1,7 +1,7 @@
 '''
 Flock is a tool for fetching historical tweets or for streaming tweets live
 Created by: Casey Key, SE Intern
-Created: July 20th, 2019
+Created: June 20th, 2019
 '''
 import csv # Exporting tweets
 import datetime # Calculate rate of tweets
@@ -416,6 +416,8 @@ class Tweet:
         text = text.lower().replace("\n", " ")
         d['text'] = text
         d['twitter_user'] = Streamer.deEmojify(tweet['user']['screen_name'])
+        d['favorite_count'] = tweet['favorite_count']
+        d['retweet_count'] = tweet['retweet_count']
         location = tweet['user']['location']
         if location:
             location = Streamer.deEmojify(location)
