@@ -140,7 +140,7 @@ class Flock(object):
             for term in tl:
                 terms.append(term)
         print("Fetching tweets matching: ", terms)
-        input("Press enter to continue.")
+        # input("Press enter to continue.")
         
         last_date = datetime.datetime.now()
         if cont:
