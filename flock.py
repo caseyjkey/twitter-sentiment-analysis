@@ -266,6 +266,7 @@ class Streamer(TwythonStreamer):
         # Only collect tweets in English
         lang = data.get('lang', None)
         if lang == 'en':
+                self.total_tweets += 1
                 # Calculate average time per tweet
                 tweet_time = datetime.datetime.now()
                 tweet_time_difference = tweet_time - self.last_tweet_time
@@ -410,17 +411,17 @@ class Tweet:
     def process_tweet(tweet):
         d = {}
         d['tweet_date'] = tweet['created_at']
-        d['hashtags'] = [hashtag['text'] for hashtag in Streamer.getHashtags(tweet)]
-        text = Streamer.getText(tweet)
-        text = Streamer.deEmojify(text) 
+        d['hashtags'] = [hashtag['text'] for hashtag in Tweet.getHashtags(tweet)]
+        text = Tweet.getText(tweet)
+        text = Tweet.deEmojify(text) 
         text = text.lower().replace("\n", " ")
         d['text'] = text
-        d['twitter_user'] = Streamer.deEmojify(tweet['user']['screen_name'])
+        d['twitter_user'] = Tweet.deEmojify(tweet['user']['screen_name'])
         d['favorite_count'] = tweet['favorite_count']
         d['retweet_count'] = tweet['retweet_count']
         location = tweet['user']['location']
         if location:
-            location = Streamer.deEmojify(location)
+            location = Tweet.deEmojify(location)
         d['user_loc'] = location 
         return d
 
@@ -438,7 +439,7 @@ class Tweet:
                          'expanded_url', 'display_url'] and value is not None:
                 if field == 'text' or field == 'full_text':
                     text = tweet[field]
-                    text = Streamer.deEmojify(text)
+                    text = Tweet.deEmojify(text)
                     text = text.lower().replace('\n', ' ')
                     new_tweet[field] = text
                 elif field == 'screen_name':
@@ -454,16 +455,16 @@ class Tweet:
 
             elif field in ['retweeted_status', 'quoted_status', 'user', 'extended_tweet', 'entities']:
                 if value:
-                    new_tweet[field] = Streamer.summarize(value)
+                    new_tweet[field] = Tweet.summarize(value)
 
             elif field == 'hashtags' and len(value):
                 for hashtag in value:
-                    Streamer.summarize(hashtag)
+                    Tweet.summarize(hashtag)
 
             elif field == 'urls':
                 if type(value) == list and len(value):
                     for link_dict in value:
-                        new_tweet[field] = Streamer.summarize(link_dict)
+                        new_tweet[field] = Tweet.summarize(link_dict)
                         
         return new_tweet
 
@@ -478,7 +479,7 @@ class Tweet:
     def find_group(tweet, groups):
         for group, keywords in groups.items():
             found = False
-            found = Streamer.find_keyword(tweet, keywords, found)
+            found = Tweet.find_keyword(tweet, keywords, found)
             if(found):
                 return group
         return 'misc'
@@ -496,7 +497,7 @@ class Tweet:
                         return True
         else:
             for key, value in tweet.items():
-                found = Streamer.find_keyword(value, keywords, found)
+                found = Tweet.find_keyword(value, keywords, found)
         return found
 
 if __name__ == '__main__':           
