@@ -3,3 +3,4 @@ twitter-creds.json
 *.swp
 *.csv
 bugs
+scripts/*.modified
