@@ -1,0 +1,4 @@
+tweet_date,hashtags,text,twitter_user,favorite_count,retweet_count,user_loc,keyword
+Wed Jul 10 20:30:06 +0000 2019,"['Vaultmex', 'BTC', 'monero', 'cryptonews', 'dapp']",btc #vaultmex price alert   time: 2019-07-10 23:30:06 #btc btc  change:% #monero #cryptonews #dapp $etc $btceur #vaultmex   https://t.co/gepyoutbtk,CoinCapsAi,The World,Bitcoin
+Wed Jul 10 20:30:06 +0000 2019,[],"whale alert!  someone moved 11,578 btc ($135m) in block 584,840 https://t.co/lxe55qi670",BtcBlockBot,The Blockchain,Bitcoin
+Wed Jul 10 20:30:06 +0000 2019,[],some interesting insights into trading.  live #quant trading: alameda research trading the 7.5k $btc sell wall on #binance today - #btc youtube,Altcoin_advice,,Bitcoin
