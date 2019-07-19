@@ -75,10 +75,19 @@ def get_search_terms():
 
     return terms
 
+'''
+Load credentials for Twitter or 
+Oracle Database (requires .ora file)
+'''
+def load_creds(json_creds):     
+        if type(json_creds) is dict:
+            return json_creds
+        with open(json_creds, "r") as f:
+            return json.load(f)
 
-class Flock(object): 
+class Flock(object):  
     def __init__(self, json_creds, output, cont):
-        self._creds =  self.creds(json_creds)
+        self._creds =  load_creds(json_creds)
         self._output = output # Output file
         self._cont = cont # Continue last query
         with open('./query.txt', 'r') as query:
@@ -87,13 +96,6 @@ class Flock(object):
         self._streamer = Streamer(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'],
                                   self._creds['ACCESS_KEY'], self._creds['ACCESS_SECRET'],
                                   groups=self._groups, outfile=self._output)
-        
-    def creds(self, json_creds):
-        # Load Twitter API credentials
-        if type(json_creds) is dict:
-            return json_creds
-        with open(json_creds, "r") as f:
-            return json.load(f)
 
     
     # Flock().tracks = [term1, term2, ..., termN]
@@ -132,7 +134,7 @@ class Flock(object):
             
 
     
-    def fetch(self, cont=False):
+    def fetch(self, cont=False, csv=False, adb=True):
         api = Twython(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'])
         term_lists = [term for term in self._groups.values()]
         terms = []
@@ -143,16 +145,24 @@ class Flock(object):
         # input("Press enter to continue.")
         
         last_date = datetime.datetime.now()
-        if cont:
-            # Read last line (Tweet) in output file
-            # Credit: Dave @ https://bit.ly/2JGPcUw
-            with open(self._output, 'rb') as f:
-                f.seek(-2, os.SEEK_END)
-                while f.read(1) != b'\n':
-                    f.seek(-2, os.SEEK_CUR)
-                last_tweet = f.readline().decode()
-            tweet_items = last_tweet.split(',')
-            last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
+        if self._cont:
+            if csv:
+                # Read last line (Tweet) in output file
+                # Credit: Dave @ https://bit.ly/2JGPcUw
+                with open(self._output, 'rb') as f:
+                    f.seek(-2, os.SEEK_END)
+                    while f.read(1) != b'\n':
+                        f.seek(-2, os.SEEK_CUR)
+                    last_tweet = f.readline().decode()
+                tweet_items = last_tweet.split(',')
+                last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
+            elif adb:
+                con = cx_Oracle.connect('', '', dsn='')
+                cursor = con.cursor()        
+                sql = 'select to_char(max(to_date(tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\')), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from tweets'
+                result = cursor.execute(sql)
+                last_time = next(iter(result))[0]
+                last_date = time.strptime(last_time, '%a %b %d %H:%M:%S +0000 %Y')
             print("Starting fetch from:", time.strftime('%a %b %d %H:%M:%S +0000 %Y', last_date))
 
         tweets = []
@@ -213,10 +223,19 @@ class Flock(object):
                         if basic['keyword'] != "misc":
 
                             date = time.strptime(basic['tweet_date'], '%a %b %d %H:%M:%S +0000 %Y')
+                            date = datetime.datetime.fromtimestamp(time.mktime(date))
+                            #print(last_date)
+                            #print(date)
+                            if type(last_date) is not str and type(last_date) is not datetime.datetime:
+                                print(type(last_date))
+                                time_last = time.mktime(last_date)
+                                print(type(time_last))
+                                last_date = datetime.datetime.fromtimestamp(time_last)
+
                             if cont == False or date > last_date:
                                 # print("Tweet saved:", basic)
-                                Tweet.save_to_csv(self._output, basic)
-
+                                Tweet.save_to_adb(basic)
+                                # input("exit now")
 
             # STEP 3: Get the next max_id
             try:
@@ -339,6 +358,32 @@ class Tweet:
                 writer = csv.writer(f)
                 writer.writerow(list(tweet.values())) # Occasionally causes an error for no keys
 
+    # Format tweet for database
+    @staticmethod
+    def sanitize(tweet):
+        for key, text in tweet.items():
+            if type(text) is str:
+                tweet[key] = str(text).encode('utf-8').decode('utf-8').replace("'","").replace('"','')
+        return tweet
+
+    # Save each tweet to an ADB
+    @staticmethod
+    def save_to_adb(tweet):
+        con = cx_Oracle.connect('', '', dsn='')
+        cursor = con.cursor()
+        sql = 'INSERT INTO TWEETS '+\
+              '(TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
+              'FOLLOWERS,FOLLOWING,'+\
+              'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD) '+\
+              'VALUES (:tweet_date, :hashtags, :text, :twitter_user,'+\
+              ':followers, :following, :favorite_count, :retweet_count,'+\
+              ':user_loc, :keyword)'
+        #print(sql)
+        tweet['hashtags'] = str(tweet['hashtags'])
+        #print(tweet.items())
+        cursor.execute(sql, Tweet.sanitize(tweet))
+        print("SQL Inserted for", tweet['text'][:20])
+        con.commit()
 
     '''
     Used for sanitizing input for ADW
