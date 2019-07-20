@@ -370,7 +370,7 @@ class Tweet:
     def sanitize(tweet):
         for key, text in tweet.items():
             if type(text) is str:
-                tweet[key] = str(text).encode('utf-8').decode('utf-8').replace("'","").replace('"','')
+                tweet[key] = str(text).replace("'","").replace('"','')#encode('utf-8').decode('utf-8')
         return tweet
 
     # Save each tweet to an ADB
