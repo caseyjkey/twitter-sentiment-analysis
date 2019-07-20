@@ -305,7 +305,7 @@ class Streamer(TwythonStreamer):
                 summary = Tweet.summarize(data)
                 basic['keyword'] = Tweet.find_group(summary, self.groups)
                 if basic['keyword'] != "misc":
-                    Tweet.save_to_csv(self.outfile, basic)
+                    Tweet.save_to_adb(self.outfile, basic)
                 else:
                     with('errors.txt', 'a') as f:
                         error_time = datetime.datetime.now()
