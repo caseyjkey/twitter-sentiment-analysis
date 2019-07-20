@@ -14,6 +14,14 @@ First create a twitter-creds.json file with your keys and tokens from a [Twitter
     "ACCESS_KEY": "accesskeyhereaccesskeyhereaccesskeyhereaccesskey1",
     "ACCESS_SECRET": "accesssecrethereaccesssecrethereaccesssecret12"
 }  
+```
+
+For Autonomous Database support:
+1. Install Oracle Instant Client
+2. Set environment variables to locate the tnsnames.ora file
+Something like this:
+```bash
+export LD_LIBRARY_PATH=/usr/lib/oracle/18.3/client64/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 ``` 
 
 ### Command-line Script
