@@ -305,7 +305,7 @@ class Streamer(TwythonStreamer):
                 summary = Tweet.summarize(data)
                 basic['keyword'] = Tweet.find_group(summary, self.groups)
                 if basic['keyword'] != "misc":
-                    Tweet.save_to_adb(self.outfile, basic)
+                    Tweet.save_to_adb(basic)
                 else:
                     with('errors.txt', 'a') as f:
                         error_time = datetime.datetime.now()
@@ -387,7 +387,7 @@ class Tweet:
         print(sql)
         tweet['hashtags'] = str(tweet['hashtags'])
         print(tweet.items())
-        cursor.execute(sql, Tweet.sanitize(tweet))
+        cursor.execute(sql, tweet)
         print("SQL Inserted for", tweet['text'][:20])
         con.commit()
 
