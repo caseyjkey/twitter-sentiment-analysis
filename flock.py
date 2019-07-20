@@ -2,8 +2,10 @@
 Flock is a tool for fetching historical tweets or for streaming tweets live
 Created by: Casey Key, SE Intern
 Created: June 20th, 2019
+Go Rams!
 '''
 import csv # Exporting tweets
+import cx_Oracle # For connecting to ADB
 import datetime # Calculate rate of tweets
 import json # Loading twitter credentials
 import os # For finding console width
@@ -12,6 +14,22 @@ import sys # For keyword 'track' arguments
 import time # For finding last tweet in previous fetch
 from twython import Twython, TwythonStreamer # Gateway to Twitter
 from urllib3.exceptions import ProtocolError # For handling IncompleteRead error
+
+
+'''
+Load credentials for Twitter or 
+Oracle Database (requires .ora file)
+'''
+def load_creds(json_creds):     
+        if type(json_creds) is dict:
+            return json_creds
+        with open(json_creds, "r") as f:
+            return json.load(f)
+
+
+
+creds = load_creds('twitter-creds.json')
+con = cx_Oracle.connect(creds['user'], creds['pass'], dsn=creds['dsn'])
 
 def get_search_terms(): 
     '''
@@ -74,16 +92,6 @@ def get_search_terms():
         json.dump(terms, f)
 
     return terms
-
-'''
-Load credentials for Twitter or 
-Oracle Database (requires .ora file)
-'''
-def load_creds(json_creds):     
-        if type(json_creds) is dict:
-            return json_creds
-        with open(json_creds, "r") as f:
-            return json.load(f)
 
 class Flock(object):  
     def __init__(self, json_creds, output, cont):
@@ -157,7 +165,6 @@ class Flock(object):
                 tweet_items = last_tweet.split(',')
                 last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
             elif adb:
-                con = cx_Oracle.connect('', '', dsn='')
                 cursor = con.cursor()        
                 sql = 'select to_char(max(to_date(tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\')), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from tweets'
                 result = cursor.execute(sql)
@@ -369,7 +376,6 @@ class Tweet:
     # Save each tweet to an ADB
     @staticmethod
     def save_to_adb(tweet):
-        con = cx_Oracle.connect('', '', dsn='')
         cursor = con.cursor()
         sql = 'INSERT INTO TWEETS '+\
               '(TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
@@ -378,9 +384,9 @@ class Tweet:
               'VALUES (:tweet_date, :hashtags, :text, :twitter_user,'+\
               ':followers, :following, :favorite_count, :retweet_count,'+\
               ':user_loc, :keyword)'
-        #print(sql)
+        print(sql)
         tweet['hashtags'] = str(tweet['hashtags'])
-        #print(tweet.items())
+        print(tweet.items())
         cursor.execute(sql, Tweet.sanitize(tweet))
         print("SQL Inserted for", tweet['text'][:20])
         con.commit()
@@ -462,6 +468,8 @@ class Tweet:
         text = text.lower().replace("\n", " ")
         d['text'] = text
         d['twitter_user'] = Tweet.deEmojify(tweet['user']['screen_name'])
+        d['followers'] = tweet['user']['followers_count']
+        d['following'] = tweet['user']['following']
         d['favorite_count'] = tweet['favorite_count']
         d['retweet_count'] = tweet['retweet_count']
         location = tweet['user']['location']
