@@ -502,7 +502,7 @@ class Tweet:
         new_tweet = {}
         for field, value in tweet.items():
             if field in ['text', 'full_text', 'screen_name', \
-                         'expanded_url', 'display_url'] and value is not None:
+                         'expanded_url', 'display_url', 'id_str'] and value is not None:
                 if field == 'text' or field == 'full_text':
                     text = tweet[field]
                     text = Tweet.deEmojify(text)
