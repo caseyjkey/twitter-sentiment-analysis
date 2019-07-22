@@ -350,10 +350,10 @@ class Tweet:
     def save_to_adb(tweet):
         cursor = con.cursor()
         sql = 'INSERT INTO TWEETS '+\
-              '(TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
+              '(ID_STR,TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
               'FOLLOWERS,FOLLOWING,'+\
               'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD) '+\
-              'VALUES (:tweet_date, :hashtags, :text, :twitter_user,'+\
+              'VALUES (:id_str :tweet_date, :hashtags, :text, :twitter_user,'+\
               ':followers, :following, :favorite_count, :retweet_count,'+\
               ':user_loc, :keyword)'
         tweet['hashtags'] = str(tweet['hashtags'])
@@ -474,6 +474,7 @@ class Tweet:
     @staticmethod
     def process_tweet(tweet):
         d = {}
+        d['id_str'] = tweet['id_str']
         d['tweet_date'] = tweet['created_at']
         d['hashtags'] = [hashtag['text'] for hashtag in Tweet.getHashtags(tweet)]
         text = Tweet.getText(tweet)
