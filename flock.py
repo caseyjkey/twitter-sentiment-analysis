@@ -370,7 +370,9 @@ class Tweet:
     def sanitize(tweet):
         for key, text in tweet.items():
             if type(text) is str:
-                tweet[key] = str(text).replace("'","").replace('"','')#encode('utf-8').decode('utf-8')
+                tweet[key] = str(text).replace("'","").replace('"','').\
+                                       encode('utf-8', errors='ignore').\
+                                       decode('utf-8', errors='ignore')
         return tweet
 
     # Save each tweet to an ADB
@@ -386,6 +388,7 @@ class Tweet:
               ':user_loc, :keyword)'
         print(sql)
         tweet['hashtags'] = str(tweet['hashtags'])
+        tweet = Tweet.sanitize(tweet)
         print(tweet.items())
         cursor.execute(sql, tweet)
         print("SQL Inserted for", tweet['text'][:20])
