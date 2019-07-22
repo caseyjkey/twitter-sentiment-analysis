@@ -433,6 +433,43 @@ class Tweet:
             hashtags.append(entity["text"].lower())
         return text
 
+    
+    # ------------- Tokenize Text ---------------- 
+
+    emoticons_str = r'''
+        (?:
+            [:=;] # Eyes
+            [o)\-^]? # Nose (optional)
+            [D\)\]\(\]/\\OpPd] # Mouth
+        )'''
+    
+    regex_str = \
+        [
+            emoticons_str,
+            r'<[&>]+>', # HTML tags
+            r'(?:\#+[\w_]+[\w\'_\-]*[\w_]+)', # Hashtags
+            r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+', # URLs
+            r'?:(?:\d+,?)+(?:\.?\d+)?)', # Numbers
+            r"(?:[a-z][a-z'\-_]+[a-z])", # Contractions & compound adjectives (-, ')
+            r'(?:[\w_]+)', # Other words
+            r'(?:\S)' # Anything else
+        ]
+
+    tokens_re = re.compile(r'('+'|'.join(regex_str)+')', re.VERBOSE | re.IGNORECASE)
+    emoticon_re = re.compile(r'^'+emoticons_str+'$', re.VERBOSE | re.IGNORECASE)
+
+    def tokenize(text):
+        return tokens_re.findall(text)
+
+    # Extract tokens from tweet text portions
+    def preprocess(text, lowercase=False):
+        tokens = tokenize(text)
+        if lowercase:
+            tokens = [token if emoticon_re.search(token) else token.lower() for token in tokens]
+        return tokens
+
+    # --------------------------------------------
+
     # Filter out unwanted data
     @staticmethod
     def process_tweet(tweet):
