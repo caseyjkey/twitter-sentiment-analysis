@@ -139,7 +139,9 @@ class Flock(object):
             
         except (KeyboardInterrupt, SystemExit):
             print("\nSaved", stream.total_tweets, "tweets in", stream.duration)
-            
+            cursor = con.cursor()
+            print(next(iter(cursor.execute('select count(*) from TWEETS')))[0])
+    
 
     
     def fetch(self, cont=False, csv=False, adb=True):
@@ -177,9 +179,7 @@ class Flock(object):
         COUNT_OF_TWEETS_TO_BE_FETCHED = 5000000000000  # int(input("How many tweets would you like?: ")) 
 
         for i in range(0,MAX_ATTEMPTS):
-            print("Attempt:", i)
             if(COUNT_OF_TWEETS_TO_BE_FETCHED < len(tweets)):
-                print("got 500 tweets")
                 break # we got 500 tweets... !!
 
             #----------------------------------------------------------------#
@@ -192,35 +192,18 @@ class Flock(object):
             results = []
             if(i == 0):
                 # Query twitter for data.
-                print("Query pt.1")
                 for term in terms:
-                    print("term: ", term)
                     results.append(api.search(q=term,count='100'))
-                    print("results:", len(results))
-                print("i==0:", results)
             else:
-                # After the first call we should have max_id from result of previous call. Pass it in query.
-                print('Query pt.2')
+                # After the first call we should have max_id from result of previous call. 
+                # Pass it in query.
                 for term in terms:
-                    print("term: ", term)
                     results.append(api.search(q=term,include_entities='true',max_id=next_max_id))
-                    print("results:", len(results))
-                print("i else 0:", results)
 
             # STEP 2: Save the returned tweets
             for result in results:
-                print("result")
                 for status in result['statuses']:
-                    print("Results:", len(result))
-                    # Only collect tweets in English
-                    #print("-----------------------\n\n\n\n\n\n\n\n")
-                    #pp = pprint.PrettyPrinter(indent=2)
-                    #pp.pprint(status)
-                    #print("Summarized tweet --------------------------------")
-                    #pp.pprint(summary)
-
                     if status.get('lang', None) == 'en':
-                        
                         # Extract tweet and append to file
                         basic = Tweet.process_tweet(status)
                         summary = Tweet.summarize(status)
@@ -231,18 +214,12 @@ class Flock(object):
 
                             date = time.strptime(basic['tweet_date'], '%a %b %d %H:%M:%S +0000 %Y')
                             date = datetime.datetime.fromtimestamp(time.mktime(date))
-                            #print(last_date)
-                            #print(date)
                             if type(last_date) is not str and type(last_date) is not datetime.datetime:
-                                print(type(last_date))
                                 time_last = time.mktime(last_date)
-                                print(type(time_last))
                                 last_date = datetime.datetime.fromtimestamp(time_last)
 
                             if cont == False or date > last_date:
-                                # print("Tweet saved:", basic)
                                 Tweet.save_to_adb(basic)
-                                # input("exit now")
 
             # STEP 3: Get the next max_id
             try:
@@ -259,11 +236,6 @@ Streamer takes api credentials, a "groups" dictionary, and an outfile
 Used by the Flock class.
 '''
 class Streamer(TwythonStreamer):
-    # start_time = None
-    # last_tweet_time = None
-    # total_tweets = None
-    # total_difference = None
-    
 
     def __init__(self, *creds, groups, outfile):
         self._start_time = datetime.datetime.now()
@@ -331,9 +303,7 @@ class Streamer(TwythonStreamer):
                     print('-' * 10)
                 
                 print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
-                print("Keyword:", basic['keyword'], "Tweet:", basic['text'])
-            
-        
+                print("Keyword:", basic['keyword'], "Tweet:", basic['text'])    
     
     # Problem with the API
     def on_error(self, status_code, data):
@@ -553,7 +523,6 @@ class Tweet:
                 for word in keyword.split():
                     if tweet.lower().find(word) != -1:
                         found = True
-                        return True
         else:
             for key, value in tweet.items():
                 found = Tweet.find_keyword(value, keywords, found)
