@@ -386,13 +386,16 @@ class Tweet:
               'VALUES (:tweet_date, :hashtags, :text, :twitter_user,'+\
               ':followers, :following, :favorite_count, :retweet_count,'+\
               ':user_loc, :keyword)'
-        print(sql)
         tweet['hashtags'] = str(tweet['hashtags'])
         tweet = Tweet.sanitize(tweet)
-        print(tweet.items())
-        cursor.execute(sql, tweet)
-        print("SQL Inserted for", tweet['text'][:20])
-        con.commit()
+        try:
+            cursor.execute(sql, tweet)
+            print("SQL Inserted for", tweet['text'][:20])
+            con.commit()
+        except:
+            print("Error with tweet: ")
+            pp = pprint.PrettyPrinter(indent=2)
+            pp.pprint(tweet)
 
     '''
     Used for sanitizing input for ADW
