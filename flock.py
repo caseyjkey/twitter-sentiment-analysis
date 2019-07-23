@@ -352,7 +352,7 @@ class Tweet:
     @staticmethod
     def save_to_adb(tweet):
         cursor = con.cursor()
-        sql = 'INSERT INTO TWEETS '+\
+        sql = 'INSERT INTO COOL_TWEETS '+\
               '(ID,TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
               'FOLLOWERS,FOLLOWING,'+\
               'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD,'+\
