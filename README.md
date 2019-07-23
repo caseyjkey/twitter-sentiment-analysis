@@ -16,9 +16,10 @@ First create a twitter-creds.json file with your keys and tokens from a [Twitter
 }  
 ```
 
-For Autonomous Database support:
-1. Install Oracle Instant Client
-2. Set environment variables to locate the tnsnames.ora file
+For Autonomous Database support, follow [these](https://cx-oracle.readthedocs.io/en/latest/installation.html#installing-cx-oracle-on-macos) intructions:
+1. Install the cx_Oracle Python package 
+2. Install Oracle Instant Client
+3. Set environment variables to locate the tnsnames.ora file
 
 Something like this:
 ```bash

@@ -10,6 +10,7 @@ import datetime # Calculate rate of tweets
 import json # Loading twitter credentials
 import os # For finding console width
 import pprint # For printing dicts such as Tweet data
+import re # For tokenizing via regex
 import sys # For keyword 'track' arguments
 import time # For finding last tweet in previous fetch
 from twython import Twython, TwythonStreamer # Gateway to Twitter
@@ -440,16 +441,17 @@ class Tweet:
         (?:
             [:=;] # Eyes
             [o)\-^]? # Nose (optional)
-            [D\)\]\(\]/\\OpPd] # Mouth
+            [D\)\]\(\]\/\\OpPd] # Mouth
         )'''
     
     regex_str = \
         [
             emoticons_str,
             r'<[&>]+>', # HTML tags
-            r'(?:\#+[\w_]+[\w\'_\-]*[\w_]+)', # Hashtags
-            r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+', # URLs
-            r'?:(?:\d+,?)+(?:\.?\d+)?)', # Numbers
+            r'@(\w+)', # @mentions
+            r'#(\w+)', # Hashtags
+            r'(http|https|ftp):\/\/[a-zA-Z0-9\\.\/]+',#http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+', # URLs
+            r'(?:\d+,?)+(?:\.?\d+)?)', # Numbers
             r"(?:[a-z][a-z'\-_]+[a-z])", # Contractions & compound adjectives (-, ')
             r'(?:[\w_]+)', # Other words
             r'(?:\S)' # Anything else
@@ -462,6 +464,7 @@ class Tweet:
         return tokens_re.findall(text)
 
     # Extract tokens from tweet text portions
+    #staticmethod
     def preprocess(text, lowercase=False):
         tokens = tokenize(text)
         if lowercase:
