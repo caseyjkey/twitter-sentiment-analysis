@@ -28,7 +28,7 @@ export LD_LIBRARY_PATH=/usr/lib/oracle/18.3/client64/lib/${LD_LIBRARY_PATH:+:$LD
 
 ### General Usage 
 To enter a custom search query and save tweets to output.txt,
-execute this command from a shell.
+execute these commands from a shell:
 ```bash
 git clone https://github.com/caseykey/flock
 cd flock
