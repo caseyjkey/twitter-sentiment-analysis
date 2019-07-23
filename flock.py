@@ -13,9 +13,10 @@ import pprint # For printing dicts such as Tweet data
 import re # For tokenizing via regex
 import sys # For keyword 'track' arguments
 import time # For finding last tweet in previous fetch
+from textblob import TextBlob # For sentiment analysis
 from twython import Twython, TwythonStreamer # Gateway to Twitter
 from urllib3.exceptions import ProtocolError # For handling IncompleteRead error
-
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer # For sentiment analysis
 
 '''
 Load credentials for Twitter or 
@@ -353,18 +354,19 @@ class Tweet:
         sql = 'INSERT INTO TWEETS '+\
               '(ID_STR,TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
               'FOLLOWERS,FOLLOWING,'+\
-              'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD) '+\
+              'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD,'+\
+              'NEGATIVE,NEUTRAL,POSITIVE) '+\
               'VALUES (:id_str :tweet_date, :hashtags, :text, :twitter_user,'+\
               ':followers, :following, :favorite_count, :retweet_count,'+\
-              ':user_loc, :keyword)'
+              ':user_loc, :keyword, :negative, :neutral, :positive)'
         tweet['hashtags'] = str(tweet['hashtags'])
         tweet = Tweet.sanitize(tweet)
         try:
             cursor.execute(sql, tweet)
             print("SQL Inserted for", tweet['text'][:20])
             con.commit()
-        except:
-            print("Error with tweet: ")
+        except Exception as e:
+            print("Error with tweet: ", e)
             pp = pprint.PrettyPrinter(indent=2)
             pp.pprint(tweet)
 
@@ -481,19 +483,16 @@ class Tweet:
 
         try:
             post = requests.post(sentimentURL, data=payload)
-            logger.debug(post.status_code)
-            logger.debug(post.text)
         except requests.exceptions.RequestException as re:
-            logger.error("Exception: requests exception getting sentiment from url caused by %s" % re)
+            print("Exception: requests exception getting sentiment from url caused by %s" % re)
             raise
 
         # return None if we are getting throttled or other connection problem
         if post.status_code != 200:
-            logger.warning("Can't get sentiment from url caused by %s %s" % (post.status_code, post.text))
+            print("Can't get sentiment from url caused by %s %s" % (post.status_code, post.text))
             return None
 
         response = post.json()
-        logger.debug(response)
 
         # neg = response['probability']['neg']
         # neutral = response['probability']['neutral']
@@ -511,7 +510,7 @@ class Tweet:
         return sentiment
 
 
-    def sentiment_analysis(text):
+    def get_sentiment(text):
         """Determine if sentiment is positive, negative, or neutral
         algorithm to figure out if sentiment is positive, negative or neutral
         uses sentiment polarity from TextBlob, VADER Sentiment and
@@ -520,7 +519,7 @@ class Tweet:
         """
 
         # pass text into sentiment url
-        sentiment_url = get_sentiment_from_url(text, sentimentURL)
+        sentiment_url = get_sentiment_from_url(text)
 
         # pass text into TextBlob
         text_tb = TextBlob(text)
@@ -554,32 +553,29 @@ class Tweet:
             else:
                 sentiment = "neutral"
 
-        # calculate average polarity from TextBlob and VADER
-        polarity = (text_tb.sentiment.polarity + text_vs['compound']) / 2
-        # output sentiment polarity
-        print("Sentiment Polarity: " + str(polarity))
-
-        # output sentiment subjectivity (TextBlob)
-        print("Sentiment Subjectivity: " + str(text_tb.sentiment.subjectivity))
-
         # output sentiment
         print("Sentiment (url): " + str(sentiment_url))
         print("Sentiment (algorithm): " + str(sentiment))
 
-        return polarity, text_tb.sentiment.subjectivity, sentiment
+        return sentiment
 
 
     # Filter for data to save
     @staticmethod
     def process_tweet(tweet):
-        d = {}
+        d = {'positive': 0, 'negative': 0, 'neutral':0}
         d['id_str'] = tweet['id_str']
         d['tweet_date'] = tweet['created_at']
         d['hashtags'] = [hashtag['text'] for hashtag in Tweet.getHashtags(tweet)]
         text = Tweet.getText(tweet)
         text = Tweet.deEmojify(text) 
-        text = text.lower().replace("\n", " ")
+        text = text.lower().replace('\n', ' ')
         d['text'] = text
+        # strip out hashtags for language processing
+        text = re.sub(r'[#|@|\$]\S+', '', text)
+        text.strip()
+        sentiment = get_sentiment(text)
+        d[sentiment] = 1
         d['twitter_user'] = Tweet.deEmojify(tweet['user']['screen_name'])
         d['followers'] = tweet['user']['friends_count']
         d['following'] = tweet['user']['following']
