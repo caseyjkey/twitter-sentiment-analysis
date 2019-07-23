@@ -11,6 +11,7 @@ import json # Loading twitter credentials
 import os # For finding console width
 import pprint # For printing dicts such as Tweet data
 import re # For tokenizing via regex
+import requests # For retrieving sentiment from api
 import sys # For keyword 'track' arguments
 import time # For finding last tweet in previous fetch
 from textblob import TextBlob # For sentiment analysis
@@ -352,11 +353,11 @@ class Tweet:
     def save_to_adb(tweet):
         cursor = con.cursor()
         sql = 'INSERT INTO TWEETS '+\
-              '(ID_STR,TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
+              '(ID,TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
               'FOLLOWERS,FOLLOWING,'+\
               'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD,'+\
-              'NEGATIVE,NEUTRAL,POSITIVE) '+\
-              'VALUES (:id_str :tweet_date, :hashtags, :text, :twitter_user,'+\
+              'negative,neutral,positive) '+\
+              'VALUES (:id, :tweet_date, :hashtags, :text, :twitter_user,'+\
               ':followers, :following, :favorite_count, :retweet_count,'+\
               ':user_loc, :keyword, :negative, :neutral, :positive)'
         tweet['hashtags'] = str(tweet['hashtags'])
@@ -451,9 +452,9 @@ class Tweet:
             emoticons_str,
             r'<[&>]+>', # HTML tags
             r'@(\w+)', # @mentions
-            r'#(\w+)', # Hashtags
+            r'\#(\w+)', # Hashtags
             r'(http|https|ftp):\/\/[a-zA-Z0-9\\.\/]+',#http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+', # URLs
-            r'(?:\d+,?)+(?:\.?\d+)?)', # Numbers
+            r'(?:\d+,?)+(?:\.?\d+)?', # Numbers
             r"(?:[a-z][a-z'\-_]+[a-z])", # Contractions & compound adjectives (-, ')
             r'(?:[\w_]+)', # Other words
             r'(?:\S)' # Anything else
@@ -519,7 +520,7 @@ class Tweet:
         """
 
         # pass text into sentiment url
-        sentiment_url = get_sentiment_from_url(text)
+        sentiment_url = Tweet.get_sentiment_from_url(text)
 
         # pass text into TextBlob
         text_tb = TextBlob(text)
@@ -564,7 +565,7 @@ class Tweet:
     @staticmethod
     def process_tweet(tweet):
         d = {'positive': 0, 'negative': 0, 'neutral':0}
-        d['id_str'] = tweet['id_str']
+        d['id'] = tweet['id']
         d['tweet_date'] = tweet['created_at']
         d['hashtags'] = [hashtag['text'] for hashtag in Tweet.getHashtags(tweet)]
         text = Tweet.getText(tweet)
@@ -574,7 +575,7 @@ class Tweet:
         # strip out hashtags for language processing
         text = re.sub(r'[#|@|\$]\S+', '', text)
         text.strip()
-        sentiment = get_sentiment(text)
+        sentiment = Tweet.get_sentiment(text)
         d[sentiment] = 1
         d['twitter_user'] = Tweet.deEmojify(tweet['user']['screen_name'])
         d['followers'] = tweet['user']['friends_count']
