@@ -578,8 +578,8 @@ class Tweet:
         sentiment = Tweet.get_sentiment(text)
         d[sentiment] = 1
         d['twitter_user'] = Tweet.deEmojify(tweet['user']['screen_name'])
-        d['followers'] = tweet['user']['friends_count']
-        d['following'] = tweet['user']['following']
+        d['followers'] = tweet['user']['followers_count']
+        d['following'] = tweet['user']['friends_count']
         d['favorite_count'] = tweet['favorite_count']
         d['retweet_count'] = tweet['retweet_count']
         location = tweet['user']['location']
