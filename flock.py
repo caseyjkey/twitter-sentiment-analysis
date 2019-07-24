@@ -357,12 +357,13 @@ class Tweet:
               'FOLLOWERS,FOLLOWING,'+\
               'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD,'+\
               'negative,neutral,positive) '+\
-              'VALUES (:id, :tweet_date, :hashtags, :text, :twitter_user,'+\
+              'VALUES (:id, to_date(:tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\'), :hashtags, :text, :twitter_user,'+\
               ':followers, :following, :favorite_count, :retweet_count,'+\
               ':user_loc, :keyword, :negative, :neutral, :positive)'
         tweet['hashtags'] = str(tweet['hashtags'])
         tweet = Tweet.sanitize(tweet)
         try:
+            print(sql)
             cursor.execute(sql, tweet)
             print("SQL Inserted for", tweet['text'][:20])
             con.commit()
