@@ -363,9 +363,8 @@ class Tweet:
         tweet['hashtags'] = str(tweet['hashtags'])
         tweet = Tweet.sanitize(tweet)
         try:
-            print(sql)
             cursor.execute(sql, tweet)
-            print("SQL Inserted for", tweet['text'][:20])
+            print("SQL inserted for Tweet with ID = ", tweet['id'])
             con.commit()
         except Exception as e:
             print("Error with tweet: ", e)
