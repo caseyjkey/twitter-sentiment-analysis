@@ -1,9 +1,9 @@
 '''
 Flock is a tool for fetching historical tweets or for streaming tweets live
-Created by: Casey Key, SE Intern
-Created: June 20th, 2019
+Created June 20, 2019 by Casey Key, Oracle SE Intern
 Go Rams!
 '''
+from collections import Counter # For term frequencies
 import csv # Exporting tweets
 import cx_Oracle # For connecting to ADB
 import datetime # Calculate rate of tweets
@@ -96,18 +96,49 @@ def get_search_terms():
 
     return terms
 
+def create_stream_db(name):
+    # View all tables
+    cursor = con.cursor()
+    tables = cursor.execute("SELECT table_name from user_tables")
+    tables = [table[0].lower() for table in tables]
+    print("Tables\n" + '-'*10)
+    for table in tables:
+        print(tables)
+    if name.lower() not in tables:
+        sql = '''create table {}
+                (TWEET_DATE date,
+                 HASHTAGS VARCHAR(400),
+                 TEXT VARCHAR(400),
+                 TWITTER_USER VARCHAR(16),
+                 FOLLOWERS NUMBER(10),
+                 FOLLOWING NUMBER(10),
+                 FAVORITE_COUNT NUMBER(6),
+                 RETWEET_COUNT NUMBER(8),
+                 USER_LOC VARCHAR(20),
+                 KEYWORD VARCHAR(40),
+                 NEGATIVE NUMBER(2),
+                 NEUTRAL NUMBER(2),
+                 POSITIVE NUMBER(2))'''.format(name)
+        cursor.execute(sql)
+    return
+
+
 class Flock(object):
 
     def __init__(self, json_creds, output, cont):
         self._creds =  load_creds(json_creds)
         self._output = output # Output type ('csv' or 'adb')
         self._cont = cont # Continue last query
+        if self._output == 'adb':
+            self._table = input("What database table would you like to use or create? ")
+            create_stream_db(self._table)
+
         with open('./query.txt', 'r') as query:
             self._groups = get_search_terms() if not cont else json.load(query)
 
         self._streamer = Streamer(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'],
                                   self._creds['ACCESS_KEY'], self._creds['ACCESS_SECRET'],
-                                  groups=self._groups, outfile=self._output)
+                                  groups=self._groups, outfile=self._table)
     
     # Flock().tracks = [term1, term2, ..., termN]
     @property
@@ -172,7 +203,7 @@ class Flock(object):
                 last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
             elif adb:
                 cursor = con.cursor()        
-                sql = 'select to_char(max(to_date(tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\')), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from tweets'
+                sql = 'select to_char(max(to_date(tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\')), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from {}'.format(table)
                 result = cursor.execute(sql)
                 last_time = next(iter(result))[0]
                 last_date = time.strptime(last_time, '%a %b %d %H:%M:%S +0000 %Y')
@@ -223,7 +254,7 @@ class Flock(object):
                                 last_date = datetime.datetime.fromtimestamp(time_last)
 
                             if cont == False or date > last_date:
-                                Tweet.save_to_adb(basic)
+                                Tweet.save_to_adb(basic, self._table)
 
             # STEP 3: Get the next max_id
             try:
@@ -232,7 +263,7 @@ class Flock(object):
                 next_max_id = next_results_url_params.split('max_id=')[1].split('&')[0]
             except:
                 # No more next pages
-                break
+                 break
 
 
 '''
@@ -240,14 +271,14 @@ Streamer takes api credentials, a "groups" dictionary, and an outfile
 Used by the Flock class.
 '''
 class Streamer(TwythonStreamer):
-
-    def __init__(self, *creds, groups, outfile):
+ 
+    def __init__(self, *creds, groups, output):
         self._start_time = datetime.datetime.now()
         self.last_tweet_time =  self._start_time
         self.total_tweets = 0
         self.total_difference = 0
         self.groups = groups
-        self.outfile = outfile
+        self.output = output
         self._quiet = True
         super().__init__(*creds)  
 
@@ -281,7 +312,7 @@ class Streamer(TwythonStreamer):
                 summary = Tweet.summarize(data)
                 basic['keyword'] = Tweet.find_group(summary, self.groups)
                 if basic['keyword'] != "misc":
-                    Tweet.save_to_adb(basic)
+                    Tweet.save_to_adb(basic, self.output)
                 else:
                     with('errors.txt', 'a') as f:
                         error_time = datetime.datetime.now()
@@ -313,6 +344,27 @@ class Streamer(TwythonStreamer):
     def on_error(self, status_code, data):
         print(status_code, data)
         self.disconnect()
+
+
+'''
+This is required for term frequencies
+Not sure where to encapsulating all
+the NLP functions to allow for News
+and Tweets to share them.
+
+Requires a connection object, "con".
+'''
+def create_freq_db(name):
+    # View all tables
+    cursor = con.cursor()
+    tables = cursor.execute("SELECT table_name from user_tables")
+    tables = [table[0] for table in tables]
+    if name not in tables:
+        sql = '''create table {}
+                (TWEET_DATE DATE,
+                 TOKEN VARCHAR(280),
+                 COUNT NUMBER(38))'''.format(name)
+        cursor.execute(sql)
 
 '''
 Methods for processing Tweets
@@ -351,21 +403,21 @@ class Tweet:
 
     # Save each tweet to an ADB
     @staticmethod
-    def save_to_adb(tweet):
+    def save_to_adb(tweet, table):
         cursor = con.cursor()
-        sql = 'INSERT INTO COOL_TWEETS '+\
+        sql = 'INSERT INTO {} '+\
               '(ID,TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
               'FOLLOWERS,FOLLOWING,'+\
               'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD,'+\
               'negative,neutral,positive) '+\
               'VALUES (:id, to_date(:tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\'), :hashtags, :text, :twitter_user,'+\
               ':followers, :following, :favorite_count, :retweet_count,'+\
-              ':user_loc, :keyword, :negative, :neutral, :positive)'
+              ':user_loc, :keyword, :negative, :neutral, :positive)'.format(table)
         tweet['hashtags'] = str(tweet['hashtags'])
         tweet = Tweet.sanitize(tweet)
         try:
             cursor.execute(sql, tweet)
-            print("SQL inserted for Tweet with ID = ", tweet['id'])
+            print("SQL inserted into ", table, "for Tweet with ID = ", tweet['id'])
             con.commit()
         except Exception as e:
             print("Error with tweet: ", e)
@@ -377,7 +429,15 @@ class Tweet:
     Credit: https://bit.ly/2NhKy4f
     '''
     @staticmethod
-    def deEmojify(inputString):
+    def deEmojify(inputString): = 'INSERT INTO COOL_TWEETS '+\
+              '(ID,TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
+              'FOLLOWERS,FOLLOWING,'+\
+              'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD,'+\
+              'negative,neutral,positive) '+\
+              'VALUES (:id, to_date(:tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\'), :hashtags, :text, :twitter_user,'+\
+              ':followers, :following, :favorite_count, :retweet_count,'+\
+              ':user_loc, :keyword, :negative, :neutral, :positive)'
+        tweet['hashtags'] = str(tweet['hashtags'])
         return inputString.encode('ascii', 'ignore').decode('ascii')
 
     '''
@@ -454,7 +514,7 @@ class Tweet:
             r'<[&>]+>', # HTML tags
             r'@(\w+)', # @mentions
             r'\#(\w+)', # Hashtags
-            r'(http|https|ftp):\/\/[a-zA-Z0-9\\.\/]+',#http[s]?://(?:[a-z]|[0-9]|[$-_@.&amp;+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+', # URLs
+            r'(http|https|ftp):\/\/[a-zA-Z0-9\\.\/]+', # URLs
             r'(?:\d+,?)+(?:\.?\d+)?', # Numbers
             r"(?:[a-z][a-z'\-_]+[a-z])", # Contractions & compound adjectives (-, ')
             r'(?:[\w_]+)', # Other words
@@ -463,21 +523,26 @@ class Tweet:
 
     tokens_re = re.compile(r'('+'|'.join(regex_str)+')', re.VERBOSE | re.IGNORECASE)
     emoticon_re = re.compile(r'^'+emoticons_str+'$', re.VERBOSE | re.IGNORECASE)
-
+    
+    @staticmethod
     def tokenize(text):
         return tokens_re.findall(text)
 
     # Extract tokens from tweet text portions
-    #staticmethod
+    @staticmethod
     def preprocess(text, lowercase=False):
         tokens = tokenize(text)
         if lowercase:
             tokens = [token if emoticon_re.search(token) else token.lower() for token in tokens]
         return tokens
+    
+    @staticmethod
+    def update_freq_db(tweet):
+        create_freq_db("tweet_freqs")
 
     # --------------------------------------------
     
-    # Credit to Chris "shirosaidev" Park
+    # Sentiment Alg inspired by Chris "shirosaidev" Park
     # https://github.com/shirosaidev/stocksight
     def get_sentiment_from_url(text):
         sentimentURL = 'http://text-processing.com/api/sentiment/'
