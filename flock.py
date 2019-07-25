@@ -130,7 +130,7 @@ class Flock(object):
         self._output = output # Output type ('csv' or 'adb')
         self._cont = cont # Continue last query
         if self._output == 'adb':
-            self._table = input("What database table would you like to use or create? ")
+            self._table = "oracle_sentiment"  # input("What database table would you like to use or create? ")
             create_stream_db(self._table)
 
         with open('./query.txt', 'r') as query:
