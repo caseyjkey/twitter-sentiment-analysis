@@ -96,10 +96,11 @@ def get_search_terms():
 
     return terms
 
-class Flock(object):  
+class Flock(object):
+
     def __init__(self, json_creds, output, cont):
         self._creds =  load_creds(json_creds)
-        self._output = output # Output file
+        self._output = output # Output type ('csv' or 'adb')
         self._cont = cont # Continue last query
         with open('./query.txt', 'r') as query:
             self._groups = get_search_terms() if not cont else json.load(query)
@@ -107,7 +108,6 @@ class Flock(object):
         self._streamer = Streamer(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'],
                                   self._creds['ACCESS_KEY'], self._creds['ACCESS_SECRET'],
                                   groups=self._groups, outfile=self._output)
-
     
     # Flock().tracks = [term1, term2, ..., termN]
     @property
@@ -120,6 +120,7 @@ class Flock(object):
                 tracks.append(keyword)
         return tracks
     
+    # This begins a streaming session
     def start(self, quiet=True):
         print("Streaming tweets about:")   
         for index, track in enumerate(self.tracks):
@@ -135,7 +136,7 @@ class Flock(object):
             while True:
                 try:
                     stream.statuses.filter(track=self.tracks)
-                except (ProtocolError, AttributeError) as e:
+                except (ProtocolError, AttributeError, Exception) as e:
                     print("Error:", e)
                     time.sleep(3)
                     continue
