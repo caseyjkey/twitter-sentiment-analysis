@@ -138,7 +138,7 @@ class Flock(object):
 
         self._streamer = Streamer(self._creds['CONSUMER_KEY'], self._creds['CONSUMER_SECRET'],
                                   self._creds['ACCESS_KEY'], self._creds['ACCESS_SECRET'],
-                                  groups=self._groups, outfile=self._table)
+                                  groups=self._groups, output=self._table)
     
     # Flock().tracks = [term1, term2, ..., termN]
     @property
