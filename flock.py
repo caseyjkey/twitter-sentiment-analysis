@@ -106,7 +106,8 @@ def create_stream_db(name):
         print(tables)
     if name.lower() not in tables:
         sql = '''create table {}
-                (TWEET_DATE date,
+                (ID NUMBER(25),
+                 TWEET_DATE date,
                  HASHTAGS VARCHAR(400),
                  TEXT VARCHAR(400),
                  TWITTER_USER VARCHAR(16),
