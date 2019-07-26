@@ -209,6 +209,7 @@ class Flock(object):
                 last_time = next(iter(result))[0]
                 if not last_time: 
                     return
+                print(last_time)
                 last_date = time.strptime(last_time, '%a %b %d %H:%M:%S +0000 %Y')
                 
             print("Starting fetch from:", time.strftime('%a %b %d %H:%M:%S +0000 %Y', last_date))
