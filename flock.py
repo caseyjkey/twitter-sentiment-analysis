@@ -203,7 +203,7 @@ class Flock(object):
                 tweet_items = last_tweet.split(',')
                 last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
             elif adb:
-                continue
+                pass
                 cursor = con.cursor()        
                 sql = 'select to_char(max(to_date(tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\')), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from {}'.format(self._table)
                 result = cursor.execute(sql)
