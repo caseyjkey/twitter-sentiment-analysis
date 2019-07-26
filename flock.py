@@ -121,6 +121,7 @@ def create_stream_db(name):
                  NEUTRAL NUMBER(2),
                  POSITIVE NUMBER(2))'''.format(name)
         cursor.execute(sql)
+
     return
 
 
@@ -131,7 +132,12 @@ class Flock(object):
         self._output = output # Output type ('csv' or 'adb')
         self._cont = cont # Continue last query
         if self._output == 'adb':
-            self._table = "oracle_sentiment"  # input("What database table would you like to use or create? ")
+            with open('db.txt') as db:
+                if sys.stdout.isatty():
+                    self._table = input("What database table would you like to use or create? ")
+                    db.write(self._table)
+                else:
+                    self._table = db.read().strip()
             create_stream_db(self._table)
 
         with open('./query.txt', 'r') as query:
@@ -255,7 +261,7 @@ class Flock(object):
                             if type(last_date) is not str and type(last_date) is not datetime.datetime:
                                 time_last = time.mktime(last_date)
                                 last_date = datetime.datetime.fromtimestamp(time_last)
-
+                            print(date > last_date, date, '>', last_date)
                             if cont == False or date > last_date:
                                 Tweet.save_to_adb(basic, self._table)
                         
@@ -335,11 +341,11 @@ class Streamer(TwythonStreamer):
                         return
                 
                 # Update stream status to console
-                try:
+                if sys.stdout.isatty():
                     rows, columns = os.popen('stty size', 'r').read().split()
                     print('-' * int(columns))
                 # We are running headless
-                except:
+                else:
                     print('-' * 10)
                 
                 print(avg_time_per_tweet, "secs/tweet;", self.total_tweets, "total tweets")
