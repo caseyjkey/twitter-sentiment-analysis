@@ -407,14 +407,17 @@ class Tweet:
     @staticmethod
     def save_to_adb(tweet, table):
         cursor = con.cursor()
-        sql = 'INSERT INTO {} '+\
-              '(ID,TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,'+\
-              'FOLLOWERS,FOLLOWING,'+\
-              'FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD,'+\
-              'negative,neutral,positive) '+\
-              'VALUES (:id, to_date(:tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\'), :hashtags, :text, :twitter_user,'+\
-              ':followers, :following, :favorite_count, :retweet_count,'+\
-              ':user_loc, :keyword, :negative, :neutral, :positive)'.format(table)
+        sql = '''INSERT INTO {}
+                (ID,TWEET_DATE,HASHTAGS,TEXT,TWITTER_USER,
+                 FOLLOWERS,FOLLOWING,
+                 FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD,
+                 negative,neutral,positive) 
+                 VALUES (:id, to_date(:tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\'), 
+                         :hashtags, :text, :twitter_user,
+                         :followers, :following, :favorite_count, 
+                         :retweet_count, :user_loc, :keyword, :negative, 
+                         :neutral, :positive)'''.format(table)
+        print(sql)
         tweet['hashtags'] = str(tweet['hashtags'])
         tweet = Tweet.sanitize(tweet)
         try:
