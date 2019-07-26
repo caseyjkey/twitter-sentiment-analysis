@@ -206,6 +206,8 @@ class Flock(object):
                 sql = 'select to_char(max(to_date(tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\')), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from {}'.format(self._table)
                 result = cursor.execute(sql)
                 last_time = next(iter(result))[0]
+                if not last_time: 
+                    return
                 last_date = time.strptime(last_time, '%a %b %d %H:%M:%S +0000 %Y')
             print("Starting fetch from:", time.strftime('%a %b %d %H:%M:%S +0000 %Y', last_date))
 
