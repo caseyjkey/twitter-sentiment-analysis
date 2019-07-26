@@ -202,8 +202,8 @@ class Flock(object):
                     last_tweet = f.readline().decode()
                 tweet_items = last_tweet.split(',')
                 last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
-            elif adb:
-                pass
+            #elif adb:
+                '''
                 cursor = con.cursor()        
                 sql = 'select to_char(max(to_date(tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\')), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from {}'.format(self._table)
                 result = cursor.execute(sql)
@@ -211,6 +211,7 @@ class Flock(object):
                 if not last_time: 
                     return
                 last_date = time.strptime(last_time, '%a %b %d %H:%M:%S +0000 %Y')
+                '''
             print("Starting fetch from:", time.strftime('%a %b %d %H:%M:%S +0000 %Y', last_date))
 
         tweets = []
