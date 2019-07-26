@@ -103,7 +103,7 @@ def create_stream_db(name):
     tables = [table[0].lower() for table in tables]
     print("Tables\n" + '-'*10)
     for table in tables:
-        print(tables)
+        print(table)
     if name.lower() not in tables:
         sql = '''create table {}
                 (ID NUMBER(25),
@@ -203,6 +203,7 @@ class Flock(object):
                 tweet_items = last_tweet.split(',')
                 last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
             elif adb:
+                continue
                 cursor = con.cursor()        
                 sql = 'select to_char(max(to_date(tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\')), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from {}'.format(self._table)
                 result = cursor.execute(sql)
@@ -258,7 +259,9 @@ class Flock(object):
 
                             if cont == False or date > last_date:
                                 Tweet.save_to_adb(basic, self._table)
-
+                        
+                        else:
+                            print("misc keyword in fetch")
             # STEP 3: Get the next max_id
             try:
                 # Parse the data returned to get max_id to be passed in consequent call.
