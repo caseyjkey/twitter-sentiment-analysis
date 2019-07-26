@@ -187,7 +187,7 @@ class Flock(object):
         for tl in term_lists:
             for term in tl:
                 terms.append(term)
-        print("Fetching tweets matching: ", terms)
+        print("\nFetching tweets matching: ", terms)
         # input("Press enter to continue.")
         
         last_date = datetime.datetime.now()
@@ -204,7 +204,7 @@ class Flock(object):
                 last_date = time.strptime(tweet_items[0], '%a %b %d %H:%M:%S +0000 %Y')
             elif adb:
                 cursor = con.cursor()        
-                sql = 'select to_char(max(to_date(tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\')), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from {}'.format(self._table)
+                sql = 'select to_char(max(tweet_date)), \'Dy Mon dd hh24:mi:ss "+0000" yyyy\') from {}'.format(self._table)
                 result = cursor.execute(sql)
                 last_time = next(iter(result))[0]
                 if not last_time: 
