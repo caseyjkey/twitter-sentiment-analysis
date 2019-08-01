@@ -266,17 +266,17 @@ class Flock(object):
                                 tweet.save_to_adb(self._table)
                         
                         else:
-                            with open('errors.txt', 'a') as f:
+                            with('errors.txt', 'a') as f:
                                 error_time = datetime.datetime.now()
                                 pp = pprint.PrettyPrinter(indent=2, stream=f)
-                                f.write('-'*7 + 'Fetch' + '-'*7)
+                                f.write('-'*7, 'Fetch', '-'*7)
                                 f.write(str(error_time) + ': Tweet filed under "misc":')
                                 f.write('-'*10 + "Data" + '-'*10 + '\n')
                                 pp.pprint(tweet.raw)
                                 f.write("-"*10 + "Summary" + "-"*10 + '\n')
                                 pp.pprint(tweet.summarize(tweet.raw))
                                 f.write('-'*10 + 'Groups' + '-'*10 + '\n')
-                                pp.pprint(self._groups)
+                                pp.pprint(self.groups)
                                 f.write('-'*20)
                                 print(str(error_time) + ": Misc logged\n") 
 
@@ -334,10 +334,10 @@ class Streamer(TwythonStreamer):
                 # Extract tweet and append to file
                 tweet = Tweet(data)
                 tweet.find_topic(self.groups)
-                if tweet.keyword:
+                if self.keyword:
                     tweet.save_to_adb(self.output)
                 else:
-                    with open('errors.txt', 'a') as f:
+                    with('errors.txt', 'a') as f:
                         error_time = datetime.datetime.now()
                         pp = pprint.PrettyPrinter(indent=2, stream=f)
                         f.write('-'*20)
@@ -397,13 +397,12 @@ class Tweet:
     # TODO: Add methods for printing out the atributes
     
     def __init__(self, tweet):
-        self.positive = 0
-        self.neutral = 0
-        self.negative = 0
         self.raw = tweet
         self.process_tweet(tweet)
         self.sanitize()
-        
+        self.positive = 0
+        self.neutral = 0
+        self.negative = 0
 
     # Filter for data to save
     def process_tweet(self, tweet):
@@ -413,13 +412,14 @@ class Tweet:
         self.getText(tweet)
         sent_result = nlp.get_sentiment(self.text)
         setattr(self, sent_result, 1)
-        self.twitter_user = self.deEmojify(tweet['user']['screen_name'])
+        self.user = self.deEmojify(tweet['user']['screen_name'])
         self.followers = tweet['user']['followers_count']
         self.following = tweet['user']['friends_count']
-        self.favorites = tweet['favorite_count']
-        self.retweets = tweet['retweet_count']
+        self.favorite_count = tweet['favorite_count']
+        self.retweet_count = tweet['retweet_count']
         location = tweet['user']['location']
-        self.user_loc = self.deEmojify(location) if location else "Earth"
+        if location:
+            self.location = self.deEmojify(location)
 
 
     # Save each tweet to csv file
@@ -458,13 +458,13 @@ class Tweet:
                  FAVORITE_COUNT,RETWEET_COUNT,USER_LOC,KEYWORD,
                  negative,neutral,positive) 
                  VALUES (:id, to_date(:tweet_date, \'Dy Mon dd hh24:mi:ss "+0000" yyyy\'), 
-                         :hashtags, :text, :twitter_user,
+                         :hashtags, :text, :user,
                          :followers, :following, :favorites, 
-                         :retweets, :user_loc, :keyword, :negative, 
+                         :retweets, :location, :keyword, :negative, 
                          :neutral, :positive)'''.format(table)
         print(sql)
         try:
-            tweet = {i:vars(self)[i] for i in vars(self) if i!='raw'}
+            tweet = {i:d[i] for i in d if i!='raw'}
             cursor.execute(sql, tweet)
             print("SQL inserted into ", table, "for Tweet with ID = ", self.id)
             con.commit()
@@ -543,7 +543,7 @@ class Tweet:
         hashtags = []
         for entity in text:
             hashtags.append(entity["text"].lower())
-        self.hashtags = str(hashtags)
+        self.hashtags = hashtags
     
     
     '''
@@ -600,7 +600,7 @@ class Tweet:
         tweet = self.summarize(self.raw)
         found = list() 
         for topic, keywords in topics.items():
-            found = self.find_keyword(tweet, keywords, found)
+            self.find_keyword(tweet, keywords, found)
         best_keyword = max(found, key=len) if found else None
         if best_keyword:
             for key, value in topics.items():
@@ -622,7 +622,7 @@ class Tweet:
         else:
             for key, value in val.items():
                 self.find_keyword(value, keywords, found)
-        return found
+        return
 
     def find_string(self, string, text):
         for word in string.split():
@@ -646,7 +646,7 @@ if __name__ == '__main__':
 
  
     stream = Flock(creds, outfile, samesearch)
-    #stream.fetch(cont=True)
+    stream.fetch(cont=True)
     stream.start()       
 
 
