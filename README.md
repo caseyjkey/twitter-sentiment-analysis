@@ -1,9 +1,10 @@
-# Flock
+# Twitter Sentiment Analyzer
 
-Flock is a Python library for collecting real-time datasets from Twitter.
+This is a Python library for identifying sentiment of different topics live from Twitter.
 
 Twitter does not allow streaming from multiple tracks. 
-This tool allows you to monitor a stream of many keywords, and group those tweets with labels. 
+This tool allows you to monitor a stream of many keywords, and group those tweets with labels.
+These Tweets are analyzed and their 'mood' is determined using an amalgam of algorithms. 
 
 ## Usage
 First create a twitter-creds.json file with your keys and tokens from a [Twitter Developer] app.
