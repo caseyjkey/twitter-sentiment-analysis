@@ -3,7 +3,7 @@
 This is a Python library for identifying sentiment of different topics live from Twitter.
 
 Twitter does not allow streaming from multiple tracks. 
-This tool allows you to monitor a stream of many keywords, and group those tweets with labels.
+This tool allows you to group a wide stream of tweets with labels.
 These Tweets are analyzed and their 'mood' is determined using an amalgam of algorithms. 
 
 ## Usage
