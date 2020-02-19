@@ -1,1 +1,0 @@
-{"Bitcoin": ["Bitcoin", "btc", "satoshi nakamoto"], "Ethereum": ["Ethereum", "eth", "vitalik buterin"], "Ripple": ["Ripple", "xrp", "xrapid", "xcurrent", "chris larsen", "jed mccaleb"], "Litecoin": ["Litecoin", "ltc", "charles lee"], "Monero": ["Monero", "xmr", "riccardo spagni"]}

@@ -1,3 +1,0 @@
-tweet_date,hashtags,text,twitter_user,user_loc,keyword
-Wed Jul 03 20:08:37 +0000 2019,[],"i'm an alt coin sniper! if i call a coin/token there is a reason, you hop in and you make immediate profits! 14% on 3 calls in an hour! that's how works my day trading program for only 0.02 btc and you will make it back instantly and beyond! do yourself a favour, dm me! #crypto",TheCryptHawk,,btc
-Wed Jul 03 20:09:25 +0000 2019,[],"does tether pump btc? when volume is low, yes. trading in satoshi-size orders makes it extremely cheap to manipulate prices. however, most of the major moves (dumps) are made in usd on coinbase and bitstamp. https://t.co/rk2yntcbka",CasPiancey,"A Big Yacht, Middle of The Ocean",btc
