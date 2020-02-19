@@ -2,5 +2,11 @@
 twitter-creds.json
 *.swp
 *.csv
-bugs
-scripts/*.modified
+*.txt
+bugs/
+scripts/
+env/
+__pycache__/
+
+
+
